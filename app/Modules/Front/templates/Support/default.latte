@@ -1,0 +1,46 @@
+{block content}
+<div class="container py-3">
+
+    <h1 class="h3 mb-4">Support Tools</h1>
+
+    <div class="row g-4">
+
+        {if $canUpdateStatus}
+        <div class="col-md-6">
+            <div class="card h-100 border-success">
+                <div class="card-header bg-success text-white">Update Ticket Status</div>
+                <div class="card-body">
+                    <p class="card-text text-muted">
+                        Change the status of open tickets (e.g. In Progress → Resolved).
+                        Full UI arrives in the ticket session.
+                    </p>
+                    <span class="badge bg-success">Authorised</span>
+                </div>
+            </div>
+        </div>
+        {/if}
+
+        {if $canAddHistory}
+        <div class="col-md-6">
+            <div class="card h-100 border-info">
+                <div class="card-header bg-info text-white">Service History</div>
+                <div class="card-body">
+                    <p class="card-text text-muted">
+                        Add service history records to items.
+                        Full UI arrives in the service-history session.
+                    </p>
+                    <span class="badge bg-info">Authorised</span>
+                </div>
+            </div>
+        </div>
+        {/if}
+
+    </div>
+
+    <p class="mt-4 text-muted small">
+        Logged in as <strong>{$roleHelper->getRole()}</strong> —
+        support tools access confirmed via ACL.
+    </p>
+
+</div>
+{/block}

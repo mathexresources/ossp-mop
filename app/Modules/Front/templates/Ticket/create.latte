@@ -1,0 +1,27 @@
+{block content}
+<div class="container py-3">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{link default}">Tickets</a></li>
+            <li class="breadcrumb-item active">Create Ticket</li>
+        </ol>
+    </nav>
+
+    <h1 class="h3 mb-4">Create Ticket</h1>
+
+    <div class="card">
+        <div class="card-body text-center text-muted py-5">
+            <p class="mb-0">
+                Ticket creation form will be implemented in the ticket session.
+                <br>
+                <span class="small">
+                    You are authorised: role <strong>{$roleHelper->getRole()}</strong>
+                    has the <code>ticket:create</code> privilege.
+                </span>
+            </p>
+        </div>
+    </div>
+
+</div>
+{/block}

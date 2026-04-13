@@ -15,25 +15,64 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="mainNav">
+
+            {* ── Left side: contextual navigation items ─────────────────── *}
             <ul class="navbar-nav me-auto">
+
+                {* All visitors *}
                 <li class="nav-item">
-                    <a class="nav-link" href="{link :Front:Homepage:default}">Home</a>
+                    <a class="nav-link" href="{link :Front:Ticket:default}">Tickets</a>
                 </li>
-            </ul>
-            <ul class="navbar-nav ms-auto">
-                {if $presenter->getUser()->isLoggedIn()}
-                    {var $identity = $presenter->getUser()->getIdentity()}
-                    {if $presenter->getUser()->isInRole('admin')}
+
+                {if $user->isLoggedIn()}
+
+                    {* Employee, Support, Admin *}
+                    {if $roleHelper->isEmployee()}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{link :Front:Ticket:create}">Create Ticket</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{link :Front:Homepage:default}">Notifications</a>
+                        </li>
+                    {/if}
+
+                    {* Support and Admin *}
+                    {if $roleHelper->isSupport()}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{link :Front:Support:default}">Support Tools</a>
+                        </li>
+                    {/if}
+
+                    {* Admin only *}
+                    {if $roleHelper->isAdmin()}
                         <li class="nav-item">
                             <a class="nav-link" href="{link :Admin:Dashboard:default}">Admin Panel</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{link :Admin:UserApproval:default}">User Management</a>
+                        </li>
                     {/if}
+
+                {/if}
+            </ul>
+
+            {* ── Right side: identity / auth ────────────────────────────── *}
+            <ul class="navbar-nav ms-auto">
+                {if $user->isLoggedIn()}
+                    {var $identity = $user->getIdentity()}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             {$identity?->getData()['first_name']} {$identity?->getData()['last_name']}
+                            <span class="badge bg-secondary ms-1" style="font-size:.65rem;">
+                                {$roleHelper->getRole()}
+                            </span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><span class="dropdown-item-text small text-muted">{$identity?->getData()['email']}</span></li>
+                            <li>
+                                <span class="dropdown-item-text small text-muted">
+                                    {$identity?->getData()['email']}
+                                </span>
+                            </li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{link :Front:Auth:logout}">Log Out</a></li>
                         </ul>
@@ -47,12 +86,12 @@
                     </li>
                 {/if}
             </ul>
+
         </div>
     </div>
 </nav>
 
 <main class="py-4">
-    {* Flash messages — rendered in the layout so every presenter benefits *}
     <div class="container">
         {foreach $flashes as $flash}
             <div class="alert alert-{$flash->type} alert-dismissible fade show" role="alert">

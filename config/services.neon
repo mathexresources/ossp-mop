@@ -3,3 +3,13 @@ services:
     - App\Model\Repository\UserRepository
     - App\Model\Facade\UserFacade
     - App\Model\Auth\AuthService
+    - App\Security\AclFactory
+    - App\Security\RoleHelper
+
+    # AclFactory::create() returns Nette\Security\Permission which
+    # implements Nette\Security\Authorizator.  The SecurityExtension
+    # auto-detects any service implementing Authorizator and wires it
+    # as the application authorizator — no extra security.neon config needed.
+    acl:
+        factory: @App\Security\AclFactory::create
+        type: Nette\Security\Permission

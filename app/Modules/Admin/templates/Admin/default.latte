@@ -1,0 +1,50 @@
+{block content}
+<h1 class="h3 mb-4">Admin Overview</h1>
+
+<div class="row g-4">
+
+    {if $canApproveUsers}
+    <div class="col-md-4">
+        <div class="card h-100 border-warning">
+            <div class="card-header bg-warning text-dark fw-bold">User Approvals</div>
+            <div class="card-body">
+                <p class="card-text">Review and approve or reject pending user registrations.</p>
+                <a href="{link :Admin:UserApproval:default}" class="btn btn-warning btn-sm">
+                    Manage Pending Users
+                </a>
+            </div>
+        </div>
+    </div>
+    {/if}
+
+    {if $canManageUsers}
+    <div class="col-md-4">
+        <div class="card h-100 border-primary">
+            <div class="card-header bg-primary text-white fw-bold">User Management</div>
+            <div class="card-body">
+                <p class="card-text">View all users, change roles, and manage accounts.</p>
+                <span class="badge bg-secondary">Coming in user-management session</span>
+            </div>
+        </div>
+    </div>
+    {/if}
+
+    {if $canManageItems}
+    <div class="col-md-4">
+        <div class="card h-100 border-secondary">
+            <div class="card-header bg-secondary text-white fw-bold">Items &amp; Locations</div>
+            <div class="card-body">
+                <p class="card-text">Add, edit, and decommission tracked items and their locations.</p>
+                <span class="badge bg-secondary">Coming in item-management session</span>
+            </div>
+        </div>
+    </div>
+    {/if}
+
+</div>
+
+<p class="mt-4 text-muted small">
+    Admin panel access confirmed — all permissions verified via ACL
+    (<code>admin_panel:access</code>).
+</p>
+{/block}
