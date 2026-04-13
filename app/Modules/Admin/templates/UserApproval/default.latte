@@ -1,0 +1,50 @@
+{block content}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0">Pending User Approvals</h1>
+</div>
+
+{if $pendingUsers->count('*') === 0}
+    <div class="alert alert-success">
+        No pending registrations at this time.
+    </div>
+{else}
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Registered</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {foreach $pendingUsers as $u}
+                    <tr>
+                        <td>
+                            <strong>{$u->first_name} {$u->last_name}</strong>
+                            {if $u->city}<br><small class="text-muted">{$u->city}</small>{/if}
+                        </td>
+                        <td>{$u->email}</td>
+                        <td>{$u->phone ?? '—'}</td>
+                        <td class="text-nowrap">{$u->created_at|date:'d.m.Y'}</td>
+                        <td class="text-end text-nowrap">
+                            <a href="{link approve, $u->id}"
+                               class="btn btn-sm btn-outline-success me-1">
+                                Approve
+                            </a>
+                            <a href="{link reject, $u->id}"
+                               class="btn btn-sm btn-outline-danger">
+                                Reject
+                            </a>
+                        </td>
+                    </tr>
+                    {/foreach}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{/if}
+{/block}

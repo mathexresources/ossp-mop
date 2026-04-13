@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `street`        VARCHAR(180)            DEFAULT NULL,
     `city`          VARCHAR(100)            DEFAULT NULL,
     `role`          ENUM('guest','admin','employee','support') NOT NULL DEFAULT 'guest',
+    `status`        ENUM('pending','approved','rejected')      NOT NULL DEFAULT 'pending',
     `created_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uq_users_email` (`email`),
@@ -182,7 +183,7 @@ INSERT INTO `item_types` (`name`) VALUES
 --    support@example.com    → Support1!
 -- -------------------------------------------------------------
 INSERT INTO `users`
-    (`first_name`, `last_name`, `email`, `password_hash`, `phone`, `birth_date`, `street`, `city`, `role`, `created_at`)
+    (`first_name`, `last_name`, `email`, `password_hash`, `phone`, `birth_date`, `street`, `city`, `role`, `status`, `created_at`)
 VALUES
     (
         'Adam', 'Admin',
@@ -192,7 +193,7 @@ VALUES
         '1985-03-15',
         'Náměstí Míru 1',
         'Praha',
-        'admin',
+        'admin', 'approved',
         '2024-01-01 08:00:00'
     ),
     (
@@ -203,7 +204,7 @@ VALUES
         '1990-07-22',
         'Dlouhá 12',
         'Brno',
-        'employee',
+        'employee', 'approved',
         '2024-01-15 09:00:00'
     ),
     (
@@ -214,7 +215,7 @@ VALUES
         '1993-11-08',
         'Krátká 5',
         'Ostrava',
-        'employee',
+        'employee', 'approved',
         '2024-02-01 09:00:00'
     ),
     (
@@ -225,7 +226,7 @@ VALUES
         '1995-05-30',
         'Podpůrná 7',
         'Plzeň',
-        'support',
+        'support', 'approved',
         '2024-02-10 09:00:00'
     );
 

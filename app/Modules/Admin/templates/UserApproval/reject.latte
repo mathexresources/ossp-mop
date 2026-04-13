@@ -1,0 +1,55 @@
+{block content}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{link default}">Pending Approvals</a>
+                </li>
+                <li class="breadcrumb-item active">Reject User</li>
+            </ol>
+        </nav>
+
+        <div class="card border-danger shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">Confirm Account Rejection</h5>
+            </div>
+            <div class="card-body">
+
+                <dl class="row mb-3">
+                    <dt class="col-sm-4">Full name</dt>
+                    <dd class="col-sm-8">{$pendingUser->first_name} {$pendingUser->last_name}</dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">{$pendingUser->email}</dd>
+                </dl>
+
+                {form rejectForm}
+                <input n:name="userId" type="hidden">
+
+                <div class="mb-3">
+                    {var $e = $form['reason']->getErrors()}
+                    <label n:name="reason" class="form-label fw-semibold">
+                        Reason for rejection <span class="text-muted fw-normal">(optional)</span>
+                    </label>
+                    <textarea n:name="reason" class="form-control{if $e} is-invalid{/if}"></textarea>
+                    {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                    <div class="form-text">
+                        If provided, this reason will be included in the notification email sent to the user.
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <input n:name="reject">
+                    <a href="{link default}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+
+                {/form}
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{/block}

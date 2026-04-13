@@ -12,13 +12,14 @@ final class RouterFactory
     {
         $router = new RouteList;
 
-        $front = new RouteList('Front');
-        $front->addRoute('[<presenter>[/<action>[/<id \d+>]]]', 'Homepage:default');
-        $router->add($front);
-
+        // Admin must be registered before the Front catch-all.
         $admin = new RouteList('Admin');
         $admin->addRoute('admin[/<presenter>[/<action>[/<id \d+>]]]', 'Dashboard:default');
         $router->add($admin);
+
+        $front = new RouteList('Front');
+        $front->addRoute('[<presenter>[/<action>[/<id \d+>]]]', 'Homepage:default');
+        $router->add($front);
 
         return $router;
     }

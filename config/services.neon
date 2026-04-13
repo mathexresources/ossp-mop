@@ -1,0 +1,5 @@
+services:
+    - App\Model\Mail\MockMailer
+    - App\Model\Repository\UserRepository
+    - App\Model\Facade\UserFacade
+    - App\Model\Auth\AuthService

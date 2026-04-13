@@ -1,3 +1,7 @@
+includes:
+    - services.neon
+    - security.neon
+
 parameters:
     appName: OSSP MOP
 

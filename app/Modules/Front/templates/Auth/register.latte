@@ -1,0 +1,111 @@
+{layout '../@layout.latte'}
+
+{block title}Register{/block}
+
+{block content}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-sm-11 col-md-9 col-lg-7">
+
+            <div class="card shadow-sm mt-4 mb-5">
+                <div class="card-body p-4">
+
+                    <h1 class="h4 mb-1 text-center">Create an Account</h1>
+                    <p class="text-muted text-center small mb-4">
+                        After registration your account will be reviewed by an administrator.
+                    </p>
+
+                    {form registerForm}
+
+                    {* Global form errors *}
+                    {foreach $form->getErrors() as $error}
+                        <div class="alert alert-danger py-2">{$error}</div>
+                    {/foreach}
+
+                    <div class="row g-3">
+
+                        <div class="col-sm-6">
+                            {var $e = $form['first_name']->getErrors()}
+                            <label n:name="first_name" class="form-label fw-semibold">First name <span class="text-danger">*</span></label>
+                            <input n:name="first_name" class="form-control{if $e} is-invalid{/if}">
+                            {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                        </div>
+
+                        <div class="col-sm-6">
+                            {var $e = $form['last_name']->getErrors()}
+                            <label n:name="last_name" class="form-label fw-semibold">Last name <span class="text-danger">*</span></label>
+                            <input n:name="last_name" class="form-control{if $e} is-invalid{/if}">
+                            {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                        </div>
+
+                        <div class="col-12">
+                            {var $e = $form['email']->getErrors()}
+                            <label n:name="email" class="form-label fw-semibold">Email address <span class="text-danger">*</span></label>
+                            <input n:name="email" class="form-control{if $e} is-invalid{/if}">
+                            {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                        </div>
+
+                        <div class="col-sm-6">
+                            {var $e = $form['password']->getErrors()}
+                            <label n:name="password" class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+                            <input n:name="password" class="form-control{if $e} is-invalid{/if}">
+                            {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                            <div class="form-text">Minimum 8 characters.</div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            {var $e = $form['password_confirm']->getErrors()}
+                            <label n:name="password_confirm" class="form-label fw-semibold">Confirm password <span class="text-danger">*</span></label>
+                            <input n:name="password_confirm" class="form-control{if $e} is-invalid{/if}">
+                            {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                        </div>
+
+                        <div class="col-sm-6">
+                            {var $e = $form['phone']->getErrors()}
+                            <label n:name="phone" class="form-label fw-semibold">Phone number</label>
+                            <input n:name="phone" class="form-control{if $e} is-invalid{/if}">
+                            {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                        </div>
+
+                        <div class="col-sm-6">
+                            {var $e = $form['birth_date']->getErrors()}
+                            <label n:name="birth_date" class="form-label fw-semibold">Date of birth</label>
+                            <input n:name="birth_date" class="form-control{if $e} is-invalid{/if}">
+                            {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                        </div>
+
+                        <div class="col-12">
+                            {var $e = $form['street']->getErrors()}
+                            <label n:name="street" class="form-label fw-semibold">Street and house number</label>
+                            <input n:name="street" class="form-control{if $e} is-invalid{/if}">
+                            {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                        </div>
+
+                        <div class="col-12">
+                            {var $e = $form['city']->getErrors()}
+                            <label n:name="city" class="form-label fw-semibold">City</label>
+                            <input n:name="city" class="form-control{if $e} is-invalid{/if}">
+                            {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                        </div>
+
+                        <div class="col-12 d-grid mt-2">
+                            <input n:name="register">
+                        </div>
+
+                    </div>
+
+                    {/form}
+
+                    <hr class="my-3">
+                    <p class="text-center mb-0 small">
+                        Already have an account?
+                        <a href="{link :Front:Auth:login}">Log in here</a>
+                    </p>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{/block}

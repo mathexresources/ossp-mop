@@ -1,0 +1,41 @@
+{layout '../@layout.latte'}
+
+{block title}Account Pending Approval{/block}
+
+{block content}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-sm-10 col-md-7 col-lg-5">
+
+            <div class="card shadow-sm mt-5 border-warning">
+                <div class="card-body p-4 text-center">
+
+                    <div class="mb-3" style="font-size:3rem;">&#9203;</div>
+
+                    <h1 class="h4 mb-3">Account Pending Approval</h1>
+
+                    {foreach $flashes as $flash}
+                        <div class="alert alert-{$flash->type} py-2 text-start">{$flash->message}</div>
+                    {/foreach}
+
+                    <p class="text-muted">
+                        Your registration has been received. An administrator will review
+                        your account and send you a confirmation email once a decision
+                        has been made.
+                    </p>
+                    <p class="text-muted small">
+                        If you have not received a response within 24 hours, please
+                        contact the system administrator.
+                    </p>
+
+                    <a href="{link :Front:Homepage:default}" class="btn btn-outline-secondary mt-2">
+                        Back to Homepage
+                    </a>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{/block}
