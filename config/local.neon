@@ -1,0 +1,7 @@
+parameters:
+    debugMode: false
+
+database:
+    dsn: 'mysql:host=database;dbname=app;charset=utf8mb4'
+    user: app
+    password: app

@@ -1,0 +1,16 @@
+parameters:
+    appName: OSSP MOP
+
+application:
+    mapping:
+        *: App\Modules\*\Presenters\*Presenter
+
+services:
+    router: App\Core\RouterFactory::createRouter
+
+database:
+    dsn: 'mysql:host=database;dbname=app;charset=utf8mb4'
+    user: app
+    password: app
+    options:
+        lazy: true
