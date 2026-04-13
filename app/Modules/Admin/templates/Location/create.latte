@@ -1,0 +1,17 @@
+{block content}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">{$title}</h1>
+    <a href="{link default}" class="btn btn-outline-secondary btn-sm">&larr; Back to Locations</a>
+</div>
+
+<div class="card shadow-sm" style="max-width:480px;">
+    <div class="card-body">
+        {control createForm}
+    </div>
+</div>
+
+<style>
+.error { color: var(--bs-danger); font-size: .875em; display: block; margin-top: .25rem; }
+input.error { border-color: var(--bs-danger); }
+</style>
+{/block}

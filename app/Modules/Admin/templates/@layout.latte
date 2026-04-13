@@ -22,9 +22,27 @@
                     <a class="nav-link" href="{link :Admin:Dashboard:default}">Dashboard</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{link :Admin:UserApproval:default}">
-                        Pending Users
+                    <a class="nav-link" href="{link :Admin:User:default}">
+                        Users
+                        {if isset($pendingBadge) && $pendingBadge > 0}
+                            <span class="badge bg-warning text-dark">{$pendingBadge}</span>
+                        {/if}
                     </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{link :Admin:UserApproval:default}">Pending Approvals</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        Items
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{link :Admin:Item:default}">All Items</a></li>
+                        <li><a class="dropdown-item" href="{link :Admin:Item:create}">+ Add Item</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{link :Admin:ItemType:default}">Item Types</a></li>
+                        <li><a class="dropdown-item" href="{link :Admin:Location:default}">Locations</a></li>
+                    </ul>
                 </li>
             </ul>
             <ul class="navbar-nav ms-auto">
@@ -35,9 +53,7 @@
                     </span>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{link :Front:Homepage:default}">
-                        &larr; Back to App
-                    </a>
+                    <a class="nav-link" href="{link :Front:Homepage:default}">&larr; Back to App</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-warning" href="{link :Front:Auth:logout}">Log Out</a>
@@ -50,7 +66,6 @@
 <main class="py-4">
     <div class="container-fluid px-4">
 
-        {* Flash messages *}
         {foreach $flashes as $flash}
             <div class="alert alert-{$flash->type} alert-dismissible fade show" role="alert">
                 {$flash->message}

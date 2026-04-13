@@ -1,0 +1,62 @@
+{block content}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{link default}">Users</a></li>
+        <li class="breadcrumb-item">
+            <a href="{link edit, $targetUser->id}">{$targetUser->first_name} {$targetUser->last_name}</a>
+        </li>
+        <li class="breadcrumb-item active">Delete</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+<div class="col-md-6">
+
+<div class="card shadow-sm border-danger">
+    <div class="card-header bg-danger text-white fw-semibold">
+        Confirm User Deletion
+    </div>
+    <div class="card-body">
+
+        <div class="alert alert-warning">
+            <strong>This action cannot be easily undone.</strong>
+            The user record is soft-deleted — it will no longer appear in the
+            application, but remains in the database.
+        </div>
+
+        <dl class="row">
+            <dt class="col-sm-4">Full name</dt>
+            <dd class="col-sm-8">{$targetUser->first_name} {$targetUser->last_name}</dd>
+
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8">{$targetUser->email}</dd>
+
+            <dt class="col-sm-4">Role</dt>
+            <dd class="col-sm-8">
+                {var $roleBadge = match($targetUser->role) {
+                    'admin'    => 'bg-danger',
+                    'support'  => 'bg-info',
+                    'employee' => 'bg-primary',
+                    default    => 'bg-secondary',
+                }}
+                <span class="badge {$roleBadge}">{$targetUser->role}</span>
+            </dd>
+
+            <dt class="col-sm-4">Registered</dt>
+            <dd class="col-sm-8">{$targetUser->created_at|date:'d.m.Y'}</dd>
+        </dl>
+
+        {form deleteForm}
+        <div class="d-flex gap-2 mt-3">
+            <input n:name="delete">
+            <a href="{link edit, $targetUser->id}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+        {/form}
+
+    </div>
+</div>
+
+</div>
+</div>
+{/block}

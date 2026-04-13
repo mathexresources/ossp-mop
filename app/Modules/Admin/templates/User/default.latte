@@ -1,0 +1,173 @@
+{block content}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">
+        User Management
+        {if $pendingCount > 0}
+            <a href="{link :Admin:UserApproval:default}" class="badge bg-warning text-dark text-decoration-none ms-2" style="font-size:.7rem;">
+                {$pendingCount} pending
+            </a>
+        {/if}
+    </h1>
+    <a href="{link create}" class="btn btn-success btn-sm">+ Create User</a>
+</div>
+
+{* ── Filter / search bar ─────────────────────────────────────────── *}
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" action="{link default}" class="row g-2 align-items-end">
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label small mb-1">Role</label>
+                <select name="role" class="form-select form-select-sm">
+                    <option value="">All roles</option>
+                    <option value="admin"    {if $filters['role'] === 'admin'}selected{/if}>Admin</option>
+                    <option value="support"  {if $filters['role'] === 'support'}selected{/if}>Support</option>
+                    <option value="employee" {if $filters['role'] === 'employee'}selected{/if}>Employee</option>
+                    <option value="guest"    {if $filters['role'] === 'guest'}selected{/if}>Guest</option>
+                </select>
+            </div>
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label small mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    <option value="approved" {if $filters['status'] === 'approved'}selected{/if}>Approved</option>
+                    <option value="pending"  {if $filters['status'] === 'pending'}selected{/if}>Pending</option>
+                    <option value="rejected" {if $filters['status'] === 'rejected'}selected{/if}>Rejected</option>
+                </select>
+            </div>
+            <div class="col-sm-4 col-md-4">
+                <label class="form-label small mb-1">Search</label>
+                <input type="text" name="search" value="{$filters['search']}" placeholder="Name or email…"
+                    class="form-control form-control-sm">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                <a href="{link default}" class="btn btn-outline-secondary btn-sm ms-1">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{* ── Table ────────────────────────────────────────────────────────── *}
+{if $paginator->itemCount === 0}
+    <div class="alert alert-info">No users match the current filter.</div>
+{else}
+<div class="card shadow-sm mb-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Registered</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {foreach $users as $u}
+                <tr class="{if $u->status === 'pending'}table-warning{elseif $u->status === 'rejected'}table-danger{/if}">
+                    <td class="text-muted small">{$u->id}</td>
+                    <td>
+                        <strong>{$u->first_name} {$u->last_name}</strong>
+                        {if $u->city}<br><small class="text-muted">{$u->city}</small>{/if}
+                    </td>
+                    <td class="small">{$u->email}</td>
+                    <td>
+                        {var $roleBadge = match($u->role) {
+                            'admin'    => 'bg-danger',
+                            'support'  => 'bg-info',
+                            'employee' => 'bg-primary',
+                            default    => 'bg-secondary',
+                        }}
+                        <span class="badge {$roleBadge}">{$u->role}</span>
+                    </td>
+                    <td>
+                        {var $statusBadge = match($u->status) {
+                            'approved' => 'bg-success',
+                            'pending'  => 'bg-warning text-dark',
+                            'rejected' => 'bg-danger',
+                            default    => 'bg-secondary',
+                        }}
+                        <span class="badge {$statusBadge}">{$u->status}</span>
+                    </td>
+                    <td class="text-nowrap small">{$u->created_at|date:'d.m.Y'}</td>
+                    <td class="text-end text-nowrap">
+                        {if $u->status === 'pending'}
+                            <a href="{link :Admin:UserApproval:approve, $u->id}"
+                               class="btn btn-sm btn-outline-success me-1" title="Approve">✓</a>
+                            <a href="{link :Admin:UserApproval:reject, $u->id}"
+                               class="btn btn-sm btn-outline-warning me-1" title="Reject">✕</a>
+                        {/if}
+                        <a href="{link edit, $u->id}"
+                           class="btn btn-sm btn-outline-primary me-1" title="Edit">Edit</a>
+                        <a href="{link password, $u->id}"
+                           class="btn btn-sm btn-outline-secondary me-1" title="Reset Password">🔑</a>
+                        <a href="{link delete, $u->id}"
+                           class="btn btn-sm btn-outline-danger" title="Delete">Delete</a>
+                    </td>
+                </tr>
+                {/foreach}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{* ── Pagination ───────────────────────────────────────────────────── *}
+{if $paginator->pageCount > 1}
+<nav aria-label="User list pagination">
+    <ul class="pagination pagination-sm justify-content-center">
+
+        <li class="page-item {if $paginator->isFirst()}disabled{/if}">
+            <a class="page-link" href="{link default, ['page' => $paginator->page - 1, 'role' => $filters['role'], 'status' => $filters['status'], 'search' => $filters['search']]}">
+                &laquo;
+            </a>
+        </li>
+
+        {var $start = max($paginator->firstPage, $paginator->page - 2)}
+        {var $end   = min($paginator->lastPage,  $paginator->page + 2)}
+
+        {if $start > $paginator->firstPage}
+            <li class="page-item">
+                <a class="page-link" href="{link default, ['page' => $paginator->firstPage, 'role' => $filters['role'], 'status' => $filters['status'], 'search' => $filters['search']]}">1</a>
+            </li>
+            {if $start > $paginator->firstPage + 1}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            {/if}
+        {/if}
+
+        {for $p = $start; $p <= $end; $p++}
+            <li class="page-item {if $p === $paginator->page}active{/if}">
+                <a class="page-link" href="{link default, ['page' => $p, 'role' => $filters['role'], 'status' => $filters['status'], 'search' => $filters['search']]}">
+                    {$p}
+                </a>
+            </li>
+        {/for}
+
+        {if $end < $paginator->lastPage}
+            {if $end < $paginator->lastPage - 1}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            {/if}
+            <li class="page-item">
+                <a class="page-link" href="{link default, ['page' => $paginator->lastPage, 'role' => $filters['role'], 'status' => $filters['status'], 'search' => $filters['search']]}">{$paginator->lastPage}</a>
+            </li>
+        {/if}
+
+        <li class="page-item {if $paginator->isLast()}disabled{/if}">
+            <a class="page-link" href="{link default, ['page' => $paginator->page + 1, 'role' => $filters['role'], 'status' => $filters['status'], 'search' => $filters['search']]}">
+                &raquo;
+            </a>
+        </li>
+
+    </ul>
+</nav>
+<p class="text-center text-muted small">
+    Showing {$paginator->offset + 1}–{min($paginator->offset + $paginator->length, $paginator->itemCount)}
+    of {$paginator->itemCount} users
+</p>
+{/if}
+
+{/if}
+{/block}

@@ -1,7 +1,12 @@
 services:
     - App\Model\Mail\MockMailer
     - App\Model\Repository\UserRepository
+    - App\Model\Repository\ItemTypeRepository
+    - App\Model\Repository\LocationRepository
+    - App\Model\Repository\ItemRepository
+    - App\Model\Repository\ServiceHistoryRepository
     - App\Model\Facade\UserFacade
+    - App\Model\Facade\ItemFacade
     - App\Model\Auth\AuthService
     - App\Security\AclFactory
     - App\Security\RoleHelper

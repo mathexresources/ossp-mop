@@ -1,0 +1,36 @@
+{block content}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">{$title}</h1>
+    <a href="{link create}" class="btn btn-success btn-sm">+ Add Item Type</a>
+</div>
+
+{if $itemTypes->count('*') === 0}
+    <div class="alert alert-info">No item types defined yet.</div>
+{else}
+    <div class="card shadow-sm" style="max-width:700px;">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th class="text-end" style="width:160px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {foreach $itemTypes as $type}
+                        <tr>
+                            <td class="text-muted small align-middle">{$type->id}</td>
+                            <td class="align-middle fw-semibold">{$type->name}</td>
+                            <td class="align-middle text-end">
+                                <a href="{link edit $type->id}" class="btn btn-outline-secondary btn-sm">Edit</a>
+                                <a href="{link delete $type->id}" class="btn btn-outline-danger btn-sm">Delete</a>
+                            </td>
+                        </tr>
+                    {/foreach}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{/if}
+{/block}

@@ -1,0 +1,189 @@
+{block content}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{link default}">Users</a></li>
+        <li class="breadcrumb-item active">Edit — {$targetUser->first_name} {$targetUser->last_name}</li>
+    </ol>
+</nav>
+
+{if $isSelf}
+<div class="alert alert-info mb-3">
+    <strong>You are editing your own account.</strong>
+    Role and status cannot be changed to prevent accidental self-lockout.
+</div>
+{/if}
+
+<div class="row g-4">
+<div class="col-xl-8">
+
+<div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+        Profile — #{$targetUser->id}
+        <a href="{link password, $targetUser->id}" class="btn btn-sm btn-outline-warning float-end">
+            🔑 Reset Password
+        </a>
+    </div>
+    <div class="card-body">
+
+        {form editForm}
+
+        {* Show form-level errors (e.g. self-demotion guard) *}
+        {var $formErrors = $form->getErrors()}
+        {if $formErrors}
+            <div class="alert alert-danger">
+                {foreach $formErrors as $err}{$err}<br>{/foreach}
+            </div>
+        {/if}
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+                {var $e = $form['first_name']->getErrors()}
+                <label n:name="first_name" class="form-label fw-semibold">
+                    First Name <span class="text-danger">*</span>
+                </label>
+                <input n:name="first_name" class="form-control{if $e} is-invalid{/if}">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-6">
+                {var $e = $form['last_name']->getErrors()}
+                <label n:name="last_name" class="form-label fw-semibold">
+                    Last Name <span class="text-danger">*</span>
+                </label>
+                <input n:name="last_name" class="form-control{if $e} is-invalid{/if}">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-8">
+                {var $e = $form['email']->getErrors()}
+                <label n:name="email" class="form-label fw-semibold">
+                    Email Address <span class="text-danger">*</span>
+                </label>
+                <input n:name="email" class="form-control{if $e} is-invalid{/if}">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-4">
+                {var $e = $form['phone']->getErrors()}
+                <label n:name="phone" class="form-label">Phone</label>
+                <input n:name="phone" class="form-control{if $e} is-invalid{/if}">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-4">
+                {var $e = $form['birth_date']->getErrors()}
+                <label n:name="birth_date" class="form-label">Date of Birth</label>
+                <input n:name="birth_date" class="form-control{if $e} is-invalid{/if}">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-4">
+                {var $e = $form['city']->getErrors()}
+                <label n:name="city" class="form-label">City</label>
+                <input n:name="city" class="form-control{if $e} is-invalid{/if}">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-4">
+                {var $e = $form['street']->getErrors()}
+                <label n:name="street" class="form-label">Street</label>
+                <input n:name="street" class="form-control{if $e} is-invalid{/if}">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-4">
+                {var $e = $form['role']->getErrors()}
+                <label n:name="role" class="form-label fw-semibold">
+                    Role <span class="text-danger">*</span>
+                </label>
+                <select n:name="role" class="form-select{if $e} is-invalid{/if}"
+                    {if $isSelf}disabled title="Cannot change your own role"{/if}></select>
+                {if $isSelf}
+                    <div class="form-text text-warning">Locked — cannot change own role.</div>
+                {/if}
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                {* Re-submit value when field is disabled (browser won't send disabled fields) *}
+                {if $isSelf}<input type="hidden" name="role" value="{$targetUser->role}">{/if}
+            </div>
+
+            <div class="col-md-4">
+                {var $e = $form['status']->getErrors()}
+                <label n:name="status" class="form-label fw-semibold">
+                    Status <span class="text-danger">*</span>
+                </label>
+                <select n:name="status" class="form-select{if $e} is-invalid{/if}"
+                    {if $isSelf}disabled title="Cannot change your own status"{/if}></select>
+                {if $isSelf}
+                    <div class="form-text text-warning">Locked — cannot change own status.</div>
+                {/if}
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                {if $isSelf}<input type="hidden" name="status" value="{$targetUser->status}">{/if}
+            </div>
+
+        </div>
+
+        <hr class="my-4">
+        <div class="d-flex gap-2">
+            <input n:name="submit">
+            <a href="{link default}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+
+        {/form}
+
+    </div>
+</div>
+
+</div>
+
+{* ── Side info ──────────────────────────────────────────────────── *}
+<div class="col-xl-4">
+    <div class="card shadow-sm">
+        <div class="card-header fw-semibold">Account Info</div>
+        <div class="card-body">
+            <dl class="row mb-0 small">
+                <dt class="col-5">User ID</dt>
+                <dd class="col-7 text-muted">#{$targetUser->id}</dd>
+
+                <dt class="col-5">Registered</dt>
+                <dd class="col-7 text-muted">{$targetUser->created_at|date:'d.m.Y H:i'}</dd>
+
+                <dt class="col-5">Role</dt>
+                <dd class="col-7">
+                    {var $roleBadge = match($targetUser->role) {
+                        'admin'    => 'bg-danger',
+                        'support'  => 'bg-info',
+                        'employee' => 'bg-primary',
+                        default    => 'bg-secondary',
+                    }}
+                    <span class="badge {$roleBadge}">{$targetUser->role}</span>
+                </dd>
+
+                <dt class="col-5">Status</dt>
+                <dd class="col-7">
+                    {var $statusBadge = match($targetUser->status) {
+                        'approved' => 'bg-success',
+                        'pending'  => 'bg-warning text-dark',
+                        'rejected' => 'bg-danger',
+                        default    => 'bg-secondary',
+                    }}
+                    <span class="badge {$statusBadge}">{$targetUser->status}</span>
+                </dd>
+            </dl>
+        </div>
+        <div class="card-footer d-flex flex-column gap-2">
+            <a href="{link password, $targetUser->id}" class="btn btn-sm btn-warning">
+                🔑 Reset Password
+            </a>
+            {if !$isSelf}
+                <a href="{link delete, $targetUser->id}" class="btn btn-sm btn-outline-danger">
+                    Delete This User
+                </a>
+            {/if}
+        </div>
+    </div>
+</div>
+
+</div>
+{/block}

@@ -5,16 +5,21 @@ declare(strict_types=1);
 namespace App\Modules\Admin\Presenters;
 
 use App\Model\Facade\UserFacade;
-use App\Model\Repository\UserRepository;
 use Nette\Application\UI\Form;
 
+/**
+ * Handles the dedicated pending-user approval flow.
+ *
+ * UserRepository is provided by Admin\BasePresenter via
+ * injectUserRepository().  Only UserFacade needs an additional inject.
+ */
 final class UserApprovalPresenter extends BasePresenter
 {
-    public function __construct(
-        private readonly UserFacade     $userFacade,
-        private readonly UserRepository $userRepository,
-    ) {
-        parent::__construct();
+    private UserFacade $userFacade;
+
+    public function injectUserFacade(UserFacade $userFacade): void
+    {
+        $this->userFacade = $userFacade;
     }
 
     // ------------------------------------------------------------------
@@ -46,7 +51,7 @@ final class UserApprovalPresenter extends BasePresenter
 
     protected function createComponentApproveForm(): Form
     {
-        $form = new Form;
+        $form = new Form();
         $form->addProtection();
         $form->addHidden('userId');
         $form->addSubmit('approve', 'Approve User')
@@ -82,7 +87,7 @@ final class UserApprovalPresenter extends BasePresenter
 
     protected function createComponentRejectForm(): Form
     {
-        $form = new Form;
+        $form = new Form();
         $form->addProtection();
         $form->addHidden('userId');
 

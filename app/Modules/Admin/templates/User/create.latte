@@ -1,0 +1,108 @@
+{block content}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{link default}">Users</a></li>
+        <li class="breadcrumb-item active">Create User</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+<div class="col-xl-8">
+
+<div class="card shadow-sm">
+    <div class="card-header fw-semibold">Create New User</div>
+    <div class="card-body">
+
+        {form createForm}
+        <div class="row g-3">
+
+            <div class="col-md-6">
+                {var $e = $form['first_name']->getErrors()}
+                <label n:name="first_name" class="form-label fw-semibold">
+                    First Name <span class="text-danger">*</span>
+                </label>
+                <input n:name="first_name" class="form-control{if $e} is-invalid{/if}" placeholder="Jan">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-6">
+                {var $e = $form['last_name']->getErrors()}
+                <label n:name="last_name" class="form-label fw-semibold">
+                    Last Name <span class="text-danger">*</span>
+                </label>
+                <input n:name="last_name" class="form-control{if $e} is-invalid{/if}" placeholder="Novák">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-8">
+                {var $e = $form['email']->getErrors()}
+                <label n:name="email" class="form-label fw-semibold">
+                    Email Address <span class="text-danger">*</span>
+                </label>
+                <input n:name="email" class="form-control{if $e} is-invalid{/if}" placeholder="jan@example.com">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-4">
+                {var $e = $form['role']->getErrors()}
+                <label n:name="role" class="form-label fw-semibold">
+                    Role <span class="text-danger">*</span>
+                </label>
+                <select n:name="role" class="form-select{if $e} is-invalid{/if}"></select>
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-6">
+                {var $e = $form['password']->getErrors()}
+                <label n:name="password" class="form-label fw-semibold">
+                    Password <span class="text-danger">*</span>
+                </label>
+                <input n:name="password" class="form-control{if $e} is-invalid{/if}">
+                <div class="form-text">Minimum 8 characters. User will be created as approved.</div>
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-6">
+                {var $e = $form['phone']->getErrors()}
+                <label n:name="phone" class="form-label">Phone</label>
+                <input n:name="phone" class="form-control{if $e} is-invalid{/if}" placeholder="+420 601 000 001">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-4">
+                {var $e = $form['birth_date']->getErrors()}
+                <label n:name="birth_date" class="form-label">Date of Birth</label>
+                <input n:name="birth_date" class="form-control{if $e} is-invalid{/if}">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-4">
+                {var $e = $form['city']->getErrors()}
+                <label n:name="city" class="form-label">City</label>
+                <input n:name="city" class="form-control{if $e} is-invalid{/if}" placeholder="Praha">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+            <div class="col-md-4">
+                {var $e = $form['street']->getErrors()}
+                <label n:name="street" class="form-label">Street</label>
+                <input n:name="street" class="form-control{if $e} is-invalid{/if}" placeholder="Dlouhá 12">
+                {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+            </div>
+
+        </div>
+
+        <hr class="my-4">
+        <div class="d-flex gap-2">
+            <input n:name="submit">
+            <a href="{link default}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+        {/form}
+
+    </div>
+</div>
+
+</div>
+</div>
+{/block}

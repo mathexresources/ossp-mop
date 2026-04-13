@@ -1,0 +1,35 @@
+{block content}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">{$title}</h1>
+    <a href="{link default}" class="btn btn-outline-secondary btn-sm">&larr; Back to Items</a>
+</div>
+
+<div class="card border-danger shadow-sm" style="max-width:580px;">
+    <div class="card-header bg-danger text-white fw-semibold">Confirm Deletion</div>
+    <div class="card-body">
+
+        {if $hasTickets}
+            <div class="alert alert-danger mb-3">
+                <strong>Cannot delete this item.</strong><br>
+                One or more tickets reference <strong>{$targetItem->name}</strong>.
+                Close or delete those tickets first.
+            </div>
+            <a href="{link detail $targetItem->id}" class="btn btn-secondary">Back to Item</a>
+        {else}
+            <p>
+                You are about to permanently delete the item
+                <strong>{$targetItem->name}</strong>.
+                This action cannot be undone.
+            </p>
+            <p class="text-muted small mb-4">
+                Service history records will also be removed (they are linked to this item).
+            </p>
+
+            {control deleteForm}
+
+            <a href="{link detail $targetItem->id}" class="btn btn-outline-secondary ms-2">Cancel</a>
+        {/if}
+
+    </div>
+</div>
+{/block}

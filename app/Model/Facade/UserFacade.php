@@ -10,7 +10,8 @@ use Nette\Database\Table\ActiveRow;
 
 /**
  * Handles all user-lifecycle business logic:
- * registration, admin approval / rejection, and related email notifications.
+ * registration, admin approval / rejection, admin-direct creation,
+ * profile updates, password resets, and soft-deletion.
  */
 final class UserFacade
 {
@@ -21,12 +22,12 @@ final class UserFacade
     }
 
     // ------------------------------------------------------------------
-    //  Registration
+    //  Self-registration (pending → admin approves)
     // ------------------------------------------------------------------
 
     /**
      * Registers a new user with status = pending and role = employee.
-     * Sends a notification e-mail to every admin after insertion.
+     * Notifies every admin after insertion.
      *
      * @param  array{
      *     first_name: string,
@@ -46,10 +47,10 @@ final class UserFacade
             'last_name'     => $data['last_name'],
             'email'         => $data['email'],
             'password_hash' => password_hash($data['password'], PASSWORD_BCRYPT),
-            'phone'         => ($data['phone'] ?? '') !== '' ? $data['phone'] : null,
-            'birth_date'    => ($data['birth_date'] ?? '') !== '' ? $data['birth_date'] : null,
-            'street'        => ($data['street'] ?? '') !== '' ? $data['street'] : null,
-            'city'          => ($data['city'] ?? '') !== '' ? $data['city'] : null,
+            'phone'         => $this->nullable($data['phone'] ?? ''),
+            'birth_date'    => $this->nullable($data['birth_date'] ?? ''),
+            'street'        => $this->nullable($data['street'] ?? ''),
+            'city'          => $this->nullable($data['city'] ?? ''),
             'role'          => 'employee',
             'status'        => 'pending',
         ]);
@@ -57,6 +58,105 @@ final class UserFacade
         $this->notifyAdminsNewUser($row);
 
         return $row;
+    }
+
+    // ------------------------------------------------------------------
+    //  Admin-direct user creation (pre-approved)
+    // ------------------------------------------------------------------
+
+    /**
+     * Creates a user on behalf of an admin.
+     * Status is set to approved immediately — no approval flow needed.
+     *
+     * @param  array{
+     *     first_name: string,
+     *     last_name:  string,
+     *     email:      string,
+     *     password:   string,
+     *     role:       string,
+     *     phone?:     string,
+     *     birth_date?: string,
+     *     street?:    string,
+     *     city?:      string,
+     * } $data
+     */
+    public function createByAdmin(array $data): ActiveRow
+    {
+        return $this->userRepository->insert([
+            'first_name'    => $data['first_name'],
+            'last_name'     => $data['last_name'],
+            'email'         => $data['email'],
+            'password_hash' => password_hash($data['password'], PASSWORD_BCRYPT),
+            'role'          => $data['role'],
+            'status'        => 'approved',
+            'phone'         => $this->nullable($data['phone'] ?? ''),
+            'birth_date'    => $this->nullable($data['birth_date'] ?? ''),
+            'street'        => $this->nullable($data['street'] ?? ''),
+            'city'          => $this->nullable($data['city'] ?? ''),
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    //  Profile update (everything except password)
+    // ------------------------------------------------------------------
+
+    /**
+     * Updates a user's profile fields and optionally their role / status.
+     *
+     * @param  array{
+     *     first_name: string,
+     *     last_name:  string,
+     *     email:      string,
+     *     role:       string,
+     *     status:     string,
+     *     phone?:     string,
+     *     birth_date?: string,
+     *     street?:    string,
+     *     city?:      string,
+     * } $data
+     */
+    public function update(int $userId, array $data): void
+    {
+        $this->userRepository->update($userId, [
+            'first_name' => $data['first_name'],
+            'last_name'  => $data['last_name'],
+            'email'      => $data['email'],
+            'role'       => $data['role'],
+            'status'     => $data['status'],
+            'phone'      => $this->nullable($data['phone'] ?? ''),
+            'birth_date' => $this->nullable($data['birth_date'] ?? ''),
+            'street'     => $this->nullable($data['street'] ?? ''),
+            'city'       => $this->nullable($data['city'] ?? ''),
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    //  Password management
+    // ------------------------------------------------------------------
+
+    /**
+     * Replaces a user's password with a newly hashed one.
+     * Never stores the plain-text password.
+     */
+    public function resetPassword(int $userId, string $newPassword): void
+    {
+        $this->userRepository->update($userId, [
+            'password_hash' => password_hash($newPassword, PASSWORD_BCRYPT),
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    //  Soft deletion
+    // ------------------------------------------------------------------
+
+    /**
+     * Soft-deletes a user by setting deleted_at to the current time.
+     * The row is retained; the user can no longer log in or appear
+     * in normal queries.
+     */
+    public function softDelete(int $userId): void
+    {
+        $this->userRepository->softDelete($userId);
     }
 
     // ------------------------------------------------------------------
@@ -133,5 +233,17 @@ final class UserFacade
                     . "Regards,\nOSSP MOP System",
             );
         }
+    }
+
+    /**
+     * Returns null for empty / whitespace-only strings, otherwise the value.
+     */
+    private function nullable(mixed $value): mixed
+    {
+        if (is_string($value) && trim($value) === '') {
+            return null;
+        }
+
+        return $value ?: null;
     }
 }

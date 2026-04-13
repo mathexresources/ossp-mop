@@ -29,6 +29,9 @@
                     {* Employee, Support, Admin *}
                     {if $roleHelper->isEmployee()}
                         <li class="nav-item">
+                            <a class="nav-link" href="{link :Front:Item:default}">Items</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{link :Front:Ticket:create}">Create Ticket</a>
                         </li>
                         <li class="nav-item">

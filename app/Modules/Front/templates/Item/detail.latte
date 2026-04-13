@@ -1,0 +1,89 @@
+{block content}
+<div class="container">
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">{$title}</h1>
+    <a href="{link default}" class="btn btn-outline-secondary btn-sm">&larr; Browse Items</a>
+</div>
+
+<div class="row g-4">
+
+    {* ── Item info ────────────────────────────────────────────────────── *}
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Item Information</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8">{$targetItem->name}</dd>
+
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-secondary">{$itemType?->name ?? '—'}</span>
+                    </dd>
+
+                    <dt class="col-sm-4">Location</dt>
+                    <dd class="col-sm-8">{$location?->name ?? '—'}</dd>
+
+                    {if $targetItem->description}
+                        <dt class="col-12 mt-2">Description</dt>
+                        <dd class="col-12">{$targetItem->description}</dd>
+                    {/if}
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    {* ── Service history ──────────────────────────────────────────────── *}
+    <div class="col-lg-8">
+
+        {* Add record form — support and admin only *}
+        {if $canAddRecord}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header fw-semibold">Add Service Record</div>
+                <div class="card-body">
+                    {control addServiceRecordForm}
+                </div>
+            </div>
+        {/if}
+
+        {* Timeline *}
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                <span>Service History</span>
+                <span class="badge bg-secondary">{count($history)}</span>
+            </div>
+            <div class="card-body p-0">
+                {if count($history) === 0}
+                    <p class="text-muted fst-italic p-3 mb-0">No service records yet.</p>
+                {else}
+                    <ul class="list-group list-group-flush">
+                        {foreach $history as $record}
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <small class="text-muted">
+                                        {$record->created_at|date:'d M Y, H:i'}
+                                    </small>
+                                    <small class="text-muted">
+                                        {var $author = $record->ref('users', 'created_by')}
+                                        {$author?->first_name} {$author?->last_name}
+                                    </small>
+                                </div>
+                                <p class="mb-0">{$record->description}</p>
+                            </li>
+                        {/foreach}
+                    </ul>
+                {/if}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+.error { color: var(--bs-danger); font-size: .875em; display: block; margin-top: .25rem; }
+textarea.error { border-color: var(--bs-danger); }
+</style>
+
+</div>
+{/block}

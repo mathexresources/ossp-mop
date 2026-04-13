@@ -15,26 +15,151 @@ final class UserRepository extends Repository
         return 'users';
     }
 
+    // ------------------------------------------------------------------
+    //  Lookups used by AuthService and facade
+    // ------------------------------------------------------------------
+
+    /**
+     * Finds a non-deleted user by email address.
+     * Deleted users cannot log in.
+     */
     public function findByEmail(string $email): ?ActiveRow
     {
-        return $this->findOneBy(['email' => $email]);
+        return $this->findOneBy(['email' => $email, 'deleted_at' => null]);
     }
 
     /**
-     * Returns all users with the given status (pending | approved | rejected).
+     * Returns non-deleted users with the given status.
      */
     public function findByStatus(string $status): Selection
     {
-        return $this->findBy(['status' => $status]);
+        return $this->findBy(['status' => $status, 'deleted_at' => null]);
     }
 
     /**
-     * Returns all users with the given role.
+     * Returns non-deleted users with the given role.
      */
     public function findByRole(string $role): Selection
     {
-        return $this->findBy(['role' => $role]);
+        return $this->findBy(['role' => $role, 'deleted_at' => null]);
     }
+
+    // ------------------------------------------------------------------
+    //  Admin user management
+    // ------------------------------------------------------------------
+
+    /**
+     * Returns a Selection of non-deleted users with optional filters
+     * and a cross-column search.
+     *
+     * @param array{role?: string, status?: string} $filters
+     */
+    public function findAllForAdmin(array $filters = [], string $search = ''): Selection
+    {
+        $q = $this->selection()->where('deleted_at IS NULL');
+
+        if (!empty($filters['role'])) {
+            $q->where('role', $filters['role']);
+        }
+
+        if (!empty($filters['status'])) {
+            $q->where('status', $filters['status']);
+        }
+
+        if ($search !== '') {
+            $q->where(
+                'first_name LIKE ? OR last_name LIKE ? OR email LIKE ?',
+                "%{$search}%",
+                "%{$search}%",
+                "%{$search}%",
+            );
+        }
+
+        return $q->order('created_at DESC');
+    }
+
+    /**
+     * Soft-deletes a user by setting deleted_at.
+     * Returns the number of affected rows (0 or 1).
+     */
+    public function softDelete(int $id): int
+    {
+        return $this->selection()
+            ->where('id', $id)
+            ->update(['deleted_at' => new \DateTimeImmutable()]);
+    }
+
+    /**
+     * Checks if an email is already used by a non-deleted user,
+     * optionally ignoring a specific user (for edit validation).
+     */
+    public function emailExistsExcept(string $email, ?int $excludeId = null): bool
+    {
+        $q = $this->selection()
+            ->where('email', $email)
+            ->where('deleted_at IS NULL');
+
+        if ($excludeId !== null) {
+            $q->where('id != ?', $excludeId);
+        }
+
+        return $q->count('*') > 0;
+    }
+
+    // ------------------------------------------------------------------
+    //  Dashboard statistics
+    // ------------------------------------------------------------------
+
+    /**
+     * Returns active user counts keyed by role.
+     *
+     * @return array<string, int>
+     */
+    public function countByRole(): array
+    {
+        $counts = [];
+        foreach (['guest', 'employee', 'support', 'admin'] as $role) {
+            $counts[$role] = $this->selection()
+                ->where('role', $role)
+                ->where('deleted_at IS NULL')
+                ->count('*');
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Returns active user counts keyed by status.
+     *
+     * @return array<string, int>
+     */
+    public function countByStatus(): array
+    {
+        $counts = [];
+        foreach (['pending', 'approved', 'rejected'] as $status) {
+            $counts[$status] = $this->selection()
+                ->where('status', $status)
+                ->where('deleted_at IS NULL')
+                ->count('*');
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Returns the number of non-deleted users awaiting approval.
+     */
+    public function countPending(): int
+    {
+        return $this->selection()
+            ->where('status', 'pending')
+            ->where('deleted_at IS NULL')
+            ->count('*');
+    }
+
+    // ------------------------------------------------------------------
+    //  Status / password updates
+    // ------------------------------------------------------------------
 
     /**
      * Updates only the status column for a single user.
@@ -46,10 +171,10 @@ final class UserRepository extends Repository
     }
 
     /**
-     * Returns true when an account with the given email already exists.
+     * Returns true when a non-deleted account with the given email exists.
      */
     public function emailExists(string $email): bool
     {
-        return $this->existsBy(['email' => $email]);
+        return $this->emailExistsExcept($email);
     }
 }
