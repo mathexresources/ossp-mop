@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-mkdir -p /var/www/html/temp /var/www/html/log
-rm -rf /var/www/html/temp/cache
-chown -R www-data:www-data /var/www/html/temp /var/www/html/log
-chmod -R 775 /var/www/html/temp /var/www/html/log
+mkdir -p /var/www/html/temp/cache \
+          /var/www/html/log \
+          /var/www/html/www/uploads/tickets \
+          /var/www/html/www/uploads/blueprints
 
 exec "$@"

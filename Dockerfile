@@ -19,8 +19,7 @@ COPY . .
 
 RUN composer dump-autoload --optimize --no-dev \
     && mkdir -p temp log \
-    && chown -R www-data:www-data temp log \
-    && chmod -R 775 temp log
+    && chmod -R 777 temp log
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

@@ -4,10 +4,47 @@
     <a href="{link default}" class="btn btn-outline-secondary btn-sm">&larr; Back to Item Types</a>
 </div>
 
-<div class="card shadow-sm" style="max-width:480px;">
-    <div class="card-body">
-        {control editForm}
+<div class="row g-4">
+
+    {* ── Name + blueprint form ──────────────────────────────────────── *}
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Item Type Details</div>
+            <div class="card-body">
+                {control editForm}
+            </div>
+        </div>
     </div>
+
+    {* ── Blueprint preview ──────────────────────────────────────────── *}
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Current Blueprint</div>
+            <div class="card-body text-center">
+                {if $targetType->blueprint_path}
+                    <img src="/{$targetType->blueprint_path}"
+                         class="img-fluid rounded border mb-3"
+                         style="max-height: 320px;"
+                         alt="Blueprint for {$targetType->name}">
+                    <p class="text-muted small mb-0">
+                        To replace: upload a new image above.<br>
+                        To remove: tick &ldquo;Remove current blueprint&rdquo; and save.
+                    </p>
+                {else}
+                    <div class="py-4 text-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor"
+                             class="bi bi-image mb-2 opacity-25" viewBox="0 0 16 16">
+                            <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                            <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                        </svg>
+                        <p class="small fst-italic mb-0">No blueprint uploaded yet.</p>
+                        <p class="small text-muted mt-1">Upload a JPG or PNG to enable the 2-D damage map.</p>
+                    </div>
+                {/if}
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <style>

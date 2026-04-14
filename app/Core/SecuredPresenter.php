@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use App\Model\Facade\NotificationFacade;
 use App\Security\RoleHelper;
 use Nette\Application\UI\Presenter;
 
@@ -34,11 +35,17 @@ abstract class SecuredPresenter extends Presenter
      */
     protected ?string $requiredRole = null;
 
-    public RoleHelper $roleHelper;
+    public RoleHelper         $roleHelper;
+    public NotificationFacade $notificationFacade;
 
     public function injectRoleHelper(RoleHelper $roleHelper): void
     {
         $this->roleHelper = $roleHelper;
+    }
+
+    public function injectNotificationFacade(NotificationFacade $notificationFacade): void
+    {
+        $this->notificationFacade = $notificationFacade;
     }
 
     public function startup(): void
@@ -71,7 +78,9 @@ abstract class SecuredPresenter extends Presenter
     public function beforeRender(): void
     {
         parent::beforeRender();
-        $this->template->user       = $this->getUser();
-        $this->template->roleHelper = $this->roleHelper;
+        $this->template->user                    = $this->getUser();
+        $this->template->roleHelper              = $this->roleHelper;
+        $this->template->unreadNotificationCount = $this->notificationFacade
+            ->getUnreadCount((int) $this->getUser()->getId());
     }
 }

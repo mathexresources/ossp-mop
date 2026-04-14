@@ -5,8 +5,15 @@ services:
     - App\Model\Repository\LocationRepository
     - App\Model\Repository\ItemRepository
     - App\Model\Repository\ServiceHistoryRepository
+    - App\Model\Repository\TicketRepository
+    - App\Model\Repository\TicketImageRepository
+    - App\Model\Repository\DamagePointRepository
+    - App\Model\Repository\NotificationRepository
+    - App\Model\Facade\NotificationFacade
     - App\Model\Facade\UserFacade
     - App\Model\Facade\ItemFacade
+    - App\Model\Facade\TicketFacade
+    - App\Model\Facade\DamagePointFacade
     - App\Model\Auth\AuthService
     - App\Security\AclFactory
     - App\Security\RoleHelper

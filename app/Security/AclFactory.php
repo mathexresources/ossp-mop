@@ -55,9 +55,9 @@ final class AclFactory
 
         // ticket ─────────────────────────────────────────────────────────
         $acl->allow('guest',    'ticket', 'view');
-        $acl->allow('employee', 'ticket', ['create', 'upload']);
+        $acl->allow('employee', 'ticket', ['create', 'upload', 'edit']);
         $acl->allow('support',  'ticket', 'update-status');
-        $acl->allow('admin',    'ticket', 'assign');
+        $acl->allow('admin',    'ticket', ['assign', 'delete']);
 
         // service_history ────────────────────────────────────────────────
         $acl->allow('support', 'service_history', 'add');

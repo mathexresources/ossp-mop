@@ -16,8 +16,9 @@ use Nette\Database\Table\ActiveRow;
 final class UserFacade
 {
     public function __construct(
-        private readonly UserRepository $userRepository,
-        private readonly MockMailer     $mailer,
+        private readonly UserRepository       $userRepository,
+        private readonly MockMailer           $mailer,
+        private readonly NotificationFacade   $notificationFacade,
     ) {
     }
 
@@ -164,7 +165,7 @@ final class UserFacade
     // ------------------------------------------------------------------
 
     /**
-     * Approves a pending user account and notifies the user by e-mail.
+     * Approves a pending user account and notifies the user.
      */
     public function approve(int $userId): void
     {
@@ -178,10 +179,17 @@ final class UserFacade
                 . "Your account has been approved. You can now log in at the OSSP MOP portal.\n\n"
                 . "Regards,\nOSSP MOP Administration",
         );
+
+        $this->notificationFacade->notify(
+            $userId,
+            NotificationFacade::TYPE_USER_APPROVED,
+            'Your account has been approved. You can now log in.',
+            '/auth/login',
+        );
     }
 
     /**
-     * Rejects a pending user account and notifies the user by e-mail.
+     * Rejects a pending user account and notifies the user.
      * An optional reason is appended to the notification message.
      */
     public function reject(int $userId, ?string $reason = null): void
@@ -200,6 +208,17 @@ final class UserFacade
                 . "Unfortunately your account registration has been rejected.{$reasonText}\n\n"
                 . "If you believe this is a mistake, please contact support.\n\n"
                 . "Regards,\nOSSP MOP Administration",
+        );
+
+        $reasonSuffix = ($reason !== null && trim($reason) !== '')
+            ? ' Reason: ' . trim($reason)
+            : '';
+
+        $this->notificationFacade->notify(
+            $userId,
+            NotificationFacade::TYPE_USER_REJECTED,
+            'Your account registration has been rejected.' . $reasonSuffix,
+            '/auth/login',
         );
     }
 
@@ -231,6 +250,13 @@ final class UserFacade
                     . "  Email: {$newUser->email}\n\n"
                     . "Please log in to the admin panel to approve or reject the account.\n\n"
                     . "Regards,\nOSSP MOP System",
+            );
+
+            $this->notificationFacade->notify(
+                (int) $admin->id,
+                NotificationFacade::TYPE_USER_PENDING,
+                "{$newUser->first_name} {$newUser->last_name} ({$newUser->email}) has registered and is awaiting approval.",
+                '/admin/user-approval',
             );
         }
     }

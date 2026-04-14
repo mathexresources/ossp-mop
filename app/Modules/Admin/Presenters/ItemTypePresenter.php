@@ -15,7 +15,7 @@ use Nette\Database\Table\ActiveRow;
  * Actions:
  *   default — list all item types
  *   create  — add a new item type
- *   edit    — rename an item type
+ *   edit    — rename an item type + manage its blueprint image
  *   delete  — confirm and delete (blocked when items are assigned)
  */
 final class ItemTypePresenter extends BasePresenter
@@ -109,6 +109,12 @@ final class ItemTypePresenter extends BasePresenter
             ->setRequired('Name is required.')
             ->setMaxLength(80);
 
+        $form->addUpload('blueprint', 'Blueprint image (JPG / PNG, max 10 MB)')
+            ->setHtmlAttribute('accept', 'image/jpeg,image/png')
+            ->setRequired(false);
+
+        $form->addCheckbox('remove_blueprint', 'Remove current blueprint');
+
         $form->addSubmit('submit', 'Save Changes')
             ->setHtmlAttribute('class', 'btn btn-primary');
 
@@ -120,7 +126,16 @@ final class ItemTypePresenter extends BasePresenter
     public function editFormSucceeded(Form $form, \stdClass $values): void
     {
         try {
+            // Always update the name.
             $this->itemFacade->updateItemType($this->targetType->id, $values->name);
+
+            // Blueprint: remove takes priority over a simultaneous upload.
+            if ($values->remove_blueprint) {
+                $this->itemFacade->removeItemTypeBlueprint($this->targetType->id);
+            } elseif (isset($values->blueprint) && $values->blueprint->isOk() && $values->blueprint->getSize() > 0) {
+                $this->itemFacade->updateItemTypeBlueprint($this->targetType->id, $values->blueprint);
+            }
+
             $this->flashMessage('Item type updated.', 'success');
             $this->redirect('default');
         } catch (\RuntimeException $e) {

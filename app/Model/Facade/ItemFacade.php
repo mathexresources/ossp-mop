@@ -8,7 +8,9 @@ use App\Model\Repository\ItemRepository;
 use App\Model\Repository\ItemTypeRepository;
 use App\Model\Repository\LocationRepository;
 use App\Model\Repository\ServiceHistoryRepository;
+use App\Model\Repository\TicketRepository;
 use Nette\Database\Table\ActiveRow;
+use Nette\Http\FileUpload;
 
 /**
  * Business logic for items, item types, locations, and service history.
@@ -23,6 +25,8 @@ final class ItemFacade
         private readonly ItemTypeRepository       $itemTypeRepository,
         private readonly LocationRepository       $locationRepository,
         private readonly ServiceHistoryRepository $serviceHistoryRepository,
+        private readonly TicketRepository         $ticketRepository,
+        private readonly NotificationFacade       $notificationFacade,
     ) {
     }
 
@@ -53,7 +57,71 @@ final class ItemFacade
     }
 
     /**
+     * Uploads (or replaces) the blueprint image for an item type.
+     *
+     * Accepted formats: jpg / jpeg / png, max 10 MB.
+     * Saved to:  www/uploads/blueprints/{id}/blueprint.{ext}
+     *
+     * @throws \RuntimeException on validation failure
+     */
+    public function updateItemTypeBlueprint(int $id, FileUpload $file): void
+    {
+        if (!$file->isOk() || $file->getSize() === 0) {
+            throw new \RuntimeException('No valid file was uploaded.');
+        }
+
+        // getSanitizedName() requires the intl extension; getUntrustedName() does not.
+        // We only need the extension (compared against a whitelist) — the actual
+        // saved filename is always "blueprint.{ext}", so the original name is irrelevant.
+        $ext = strtolower(pathinfo($file->getUntrustedName(), PATHINFO_EXTENSION));
+
+        if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+            throw new \RuntimeException('Blueprint must be a JPG or PNG image.');
+        }
+
+        if ($file->getSize() > 10 * 1024 * 1024) {
+            throw new \RuntimeException('Blueprint must be smaller than 10 MB.');
+        }
+
+        $dir = $this->blueprintDir($id);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        // Normalise jpeg → jpg so the stored filename is predictable.
+        $safeExt  = ($ext === 'jpeg') ? 'jpg' : $ext;
+        $filename = 'blueprint.' . $safeExt;
+
+        $file->move($dir . $filename);
+
+        $path = 'uploads/blueprints/' . $id . '/' . $filename;
+        $this->itemTypeRepository->update($id, ['blueprint_path' => $path]);
+    }
+
+    /**
+     * Removes the blueprint image for an item type (deletes the file and clears the DB column).
+     */
+    public function removeItemTypeBlueprint(int $id): void
+    {
+        $type = $this->itemTypeRepository->findById($id);
+
+        if ($type === null) {
+            return;
+        }
+
+        if ($type->blueprint_path) {
+            $fullPath = $this->wwwRoot() . '/' . $type->blueprint_path;
+            if (file_exists($fullPath)) {
+                @unlink($fullPath);
+            }
+        }
+
+        $this->itemTypeRepository->update($id, ['blueprint_path' => null]);
+    }
+
+    /**
      * Deletes an item type only when no items are assigned to it.
+     * Also removes any uploaded blueprint file.
      *
      * @throws \RuntimeException when items are still assigned
      */
@@ -64,6 +132,15 @@ final class ItemFacade
                 'Cannot delete: one or more items are assigned to this type. '
                 . 'Reassign or delete those items first.'
             );
+        }
+
+        // Clean up blueprint file before deleting the record.
+        $type = $this->itemTypeRepository->findById($id);
+        if ($type && $type->blueprint_path) {
+            $fullPath = $this->wwwRoot() . '/' . $type->blueprint_path;
+            if (file_exists($fullPath)) {
+                @unlink($fullPath);
+            }
         }
 
         $this->itemTypeRepository->delete($id);
@@ -165,11 +242,27 @@ final class ItemFacade
 
     /**
      * Appends a service history record to an item.
-     * The timestamp is always set to now inside the repository.
+     * Notifies the creator of any open/in-progress tickets for the item.
      */
     public function addServiceRecord(int $itemId, string $description, int $createdBy): ActiveRow
     {
-        return $this->serviceHistoryRepository->addRecord($itemId, $description, $createdBy);
+        $record = $this->serviceHistoryRepository->addRecord($itemId, $description, $createdBy);
+
+        // Notify ticket creators for all active tickets on this item.
+        foreach ($this->ticketRepository->findActiveByItem($itemId) as $ticket) {
+            $creatorId = (int) $ticket->created_by;
+            // Don't notify the person who added the record.
+            if ($creatorId !== $createdBy) {
+                $this->notificationFacade->notify(
+                    $creatorId,
+                    NotificationFacade::TYPE_SERVICE_HISTORY_ADDED,
+                    "A new service record was added for the item associated with your ticket #{$ticket->id} \"{$ticket->title}\".",
+                    '/ticket/detail/' . (int) $ticket->id,
+                );
+            }
+        }
+
+        return $record;
     }
 
     // ==================================================================
@@ -183,5 +276,17 @@ final class ItemFacade
         }
 
         return $value ?: null;
+    }
+
+    /** Absolute path to the www root (one level above this file's app/). */
+    private function wwwRoot(): string
+    {
+        return dirname(__DIR__, 3) . '/www';
+    }
+
+    /** Absolute path to the blueprint upload directory for an item type. */
+    private function blueprintDir(int $itemTypeId): string
+    {
+        return $this->wwwRoot() . '/uploads/blueprints/' . $itemTypeId . '/';
     }
 }

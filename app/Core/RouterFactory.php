@@ -17,6 +17,11 @@ final class RouterFactory
         $admin->addRoute('admin[/<presenter>[/<action>[/<id \d+>]]]', 'Dashboard:default');
         $router->add($admin);
 
+        // API module — must come before the Front catch-all.
+        $api = new RouteList('Api');
+        $api->addRoute('api/<presenter>/<action>[/<id \d+>]', 'DamagePoint:add');
+        $router->add($api);
+
         $front = new RouteList('Front');
         $front->addRoute('[<presenter>[/<action>[/<id \d+>]]]', 'Homepage:default');
         $router->add($front);

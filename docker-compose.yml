@@ -11,6 +11,7 @@ services:
 
   app:
     build: .
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - .:/var/www/html
       - vendor:/var/www/html/vendor

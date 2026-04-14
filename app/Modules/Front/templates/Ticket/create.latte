@@ -1,27 +1,25 @@
 {block content}
-<div class="container py-3">
+<div class="container">
 
-    <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{link default}">Tickets</a></li>
-            <li class="breadcrumb-item active">Create Ticket</li>
-        </ol>
-    </nav>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">{$title}</h1>
+    <a href="{link default}" class="btn btn-outline-secondary btn-sm">&larr; All Tickets</a>
+</div>
 
-    <h1 class="h3 mb-4">Create Ticket</h1>
-
-    <div class="card">
-        <div class="card-body text-center text-muted py-5">
-            <p class="mb-0">
-                Ticket creation form will be implemented in the ticket session.
-                <br>
-                <span class="small">
-                    You are authorised: role <strong>{$roleHelper->getRole()}</strong>
-                    has the <code>ticket:create</code> privilege.
-                </span>
-            </p>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                {control createForm}
+            </div>
         </div>
     </div>
+</div>
 
 </div>
+
+<style>
+.error { color: var(--bs-danger); font-size: .875em; display: block; margin-top: .25rem; }
+input.error, textarea.error, select.error { border-color: var(--bs-danger); }
+</style>
 {/block}

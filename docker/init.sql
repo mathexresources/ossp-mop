@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS `tickets` (
     `status`      ENUM('open','in_progress','closed') NOT NULL DEFAULT 'open',
     `created_at`  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at`  DATETIME                DEFAULT NULL,
     PRIMARY KEY (`id`),
     KEY `idx_tickets_item`        (`item_id`),
     KEY `idx_tickets_created_by`  (`created_by`),
@@ -113,6 +114,7 @@ CREATE TABLE IF NOT EXISTS `ticket_damage_points` (
     `position_x`  DECIMAL(8,4)    NOT NULL,
     `position_y`  DECIMAL(8,4)    NOT NULL,
     `description` VARCHAR(500)            DEFAULT NULL,
+    `deleted_at`  DATETIME                DEFAULT NULL,
     PRIMARY KEY (`id`),
     KEY `idx_tdp_ticket` (`ticket_id`),
     CONSTRAINT `fk_tdp_ticket` FOREIGN KEY (`ticket_id`) REFERENCES `tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
@@ -122,9 +124,10 @@ CREATE TABLE IF NOT EXISTS `ticket_damage_points` (
 --  ticket_images
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `ticket_images` (
-    `id`        INT UNSIGNED    NOT NULL AUTO_INCREMENT,
-    `ticket_id` INT UNSIGNED    NOT NULL,
-    `path`      VARCHAR(500)    NOT NULL,
+    `id`         INT UNSIGNED    NOT NULL AUTO_INCREMENT,
+    `ticket_id`  INT UNSIGNED    NOT NULL,
+    `path`       VARCHAR(500)    NOT NULL,
+    `deleted_at` DATETIME                DEFAULT NULL,
     PRIMARY KEY (`id`),
     KEY `idx_ticket_images_ticket` (`ticket_id`),
     CONSTRAINT `fk_ticket_images_ticket` FOREIGN KEY (`ticket_id`) REFERENCES `tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
@@ -138,6 +141,7 @@ CREATE TABLE IF NOT EXISTS `notifications` (
     `user_id`    INT UNSIGNED    NOT NULL,
     `type`       VARCHAR(60)     NOT NULL,
     `message`    TEXT            NOT NULL,
+    `link_url`   VARCHAR(255)    NULL DEFAULT NULL,
     `is_read`    TINYINT(1)      NOT NULL DEFAULT 0,
     `created_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
