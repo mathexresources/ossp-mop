@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Model\Facade;
 
+use App\Model\Mail\MailService;
 use App\Model\Repository\ItemRepository;
 use App\Model\Repository\ItemTypeRepository;
 use App\Model\Repository\LocationRepository;
 use App\Model\Repository\ServiceHistoryRepository;
 use App\Model\Repository\TicketRepository;
+use App\Model\Repository\UserRepository;
 use Nette\Database\Table\ActiveRow;
 use Nette\Http\FileUpload;
 
@@ -26,7 +28,9 @@ final class ItemFacade
         private readonly LocationRepository       $locationRepository,
         private readonly ServiceHistoryRepository $serviceHistoryRepository,
         private readonly TicketRepository         $ticketRepository,
+        private readonly UserRepository           $userRepository,
         private readonly NotificationFacade       $notificationFacade,
+        private readonly MailService              $mailService,
     ) {
     }
 
@@ -70,9 +74,6 @@ final class ItemFacade
             throw new \RuntimeException('No valid file was uploaded.');
         }
 
-        // getSanitizedName() requires the intl extension; getUntrustedName() does not.
-        // We only need the extension (compared against a whitelist) — the actual
-        // saved filename is always "blueprint.{ext}", so the original name is irrelevant.
         $ext = strtolower(pathinfo($file->getUntrustedName(), PATHINFO_EXTENSION));
 
         if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
@@ -88,7 +89,6 @@ final class ItemFacade
             mkdir($dir, 0755, true);
         }
 
-        // Normalise jpeg → jpg so the stored filename is predictable.
         $safeExt  = ($ext === 'jpeg') ? 'jpg' : $ext;
         $filename = 'blueprint.' . $safeExt;
 
@@ -134,7 +134,6 @@ final class ItemFacade
             );
         }
 
-        // Clean up blueprint file before deleting the record.
         $type = $this->itemTypeRepository->findById($id);
         if ($type && $type->blueprint_path) {
             $fullPath = $this->wwwRoot() . '/' . $type->blueprint_path;
@@ -242,22 +241,43 @@ final class ItemFacade
 
     /**
      * Appends a service history record to an item.
-     * Notifies the creator of any open/in-progress tickets for the item.
+     * Notifies via in-app notification and email the creator of any
+     * open/in-progress tickets for the item.
      */
     public function addServiceRecord(int $itemId, string $description, int $createdBy): ActiveRow
     {
         $record = $this->serviceHistoryRepository->addRecord($itemId, $description, $createdBy);
 
-        // Notify ticket creators for all active tickets on this item.
+        // Resolve "added by" name for email template.
+        $addedByUser = $this->userRepository->findById($createdBy);
+        $addedByName = $addedByUser
+            ? trim($addedByUser->first_name . ' ' . $addedByUser->last_name)
+            : "User #{$createdBy}";
+
         foreach ($this->ticketRepository->findActiveByItem($itemId) as $ticket) {
             $creatorId = (int) $ticket->created_by;
+
             // Don't notify the person who added the record.
-            if ($creatorId !== $createdBy) {
-                $this->notificationFacade->notify(
-                    $creatorId,
-                    NotificationFacade::TYPE_SERVICE_HISTORY_ADDED,
-                    "A new service record was added for the item associated with your ticket #{$ticket->id} \"{$ticket->title}\".",
-                    '/ticket/detail/' . (int) $ticket->id,
+            if ($creatorId === $createdBy) {
+                continue;
+            }
+
+            // In-app notification.
+            $this->notificationFacade->notify(
+                $creatorId,
+                NotificationFacade::TYPE_SERVICE_HISTORY_ADDED,
+                "A new service record was added for the item associated with your ticket #{$ticket->id} \"{$ticket->title}\".",
+                '/ticket/detail/' . (int) $ticket->id,
+            );
+
+            // Email the ticket creator.
+            $creator = $this->userRepository->findById($creatorId);
+            if ($creator !== null) {
+                $this->mailService->sendServiceHistoryAdded(
+                    $ticket,
+                    $creator,
+                    $description,
+                    $addedByName,
                 );
             }
         }

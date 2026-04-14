@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Model\Facade;
 
+use App\Model\Mail\MailService;
 use App\Model\Repository\DamagePointRepository;
 use App\Model\Repository\TicketRepository;
+use App\Model\Repository\UserRepository;
 use Nette\Database\Table\ActiveRow;
 
 /**
@@ -24,13 +26,15 @@ final class DamagePointFacade
     public function __construct(
         private readonly DamagePointRepository $damagePointRepository,
         private readonly TicketRepository      $ticketRepository,
+        private readonly UserRepository        $userRepository,
         private readonly NotificationFacade    $notificationFacade,
+        private readonly MailService           $mailService,
     ) {
     }
 
     /**
      * Adds a damage point to a ticket.
-     * Notifies the assigned support user (if any).
+     * Notifies the assigned support user via in-app notification and email (if any).
      *
      * @param  int    $ticketId    Target ticket
      * @param  float  $x          Horizontal position (0–100 %)
@@ -86,17 +90,23 @@ final class DamagePointFacade
             'description' => $description,
         ]);
 
-        // Notify assigned support user.
+        // Notify assigned support user (skip self-notification).
         if ($ticket->assigned_to) {
             $assignedId = (int) $ticket->assigned_to;
-            // Don't notify the person who added the point.
             if ($assignedId !== $userId) {
+                // In-app notification.
                 $this->notificationFacade->notify(
                     $assignedId,
                     NotificationFacade::TYPE_DAMAGE_POINT_ADDED,
                     "A new damage point was added to ticket #{$ticketId} \"{$ticket->title}\": {$description}",
                     '/ticket/detail/' . $ticketId,
                 );
+
+                // Email the assigned support user.
+                $assignee = $this->userRepository->findById($assignedId);
+                if ($assignee !== null) {
+                    $this->mailService->sendDamagePointAdded($ticket, $assignee, $description);
+                }
             }
         }
 

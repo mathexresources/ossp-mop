@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Model\Facade;
 
 use App\Model\Database\DatabaseService;
+use App\Model\Mail\MailService;
 use App\Model\Repository\TicketImageRepository;
 use App\Model\Repository\TicketRepository;
 use App\Model\Repository\UserRepository;
@@ -24,6 +25,7 @@ final class TicketFacade
         private readonly TicketImageRepository $ticketImageRepository,
         private readonly UserRepository        $userRepository,
         private readonly NotificationFacade    $notificationFacade,
+        private readonly MailService           $mailService,
         private readonly DatabaseService       $db,
     ) {
     }
@@ -33,7 +35,8 @@ final class TicketFacade
     // ==================================================================
 
     /**
-     * Creates a new open ticket and notifies all support users.
+     * Creates a new open ticket, notifies all support users via in-app
+     * notification and email.
      *
      * @param array{title: string, description: string, item_id: int|string} $data
      */
@@ -58,6 +61,7 @@ final class TicketFacade
 
         $ticketUrl = '/ticket/detail/' . (int) $ticket->id;
 
+        // In-app notifications for support and admin roles.
         $this->notificationFacade->notifyRole(
             'support',
             NotificationFacade::TYPE_TICKET_CREATED,
@@ -65,13 +69,19 @@ final class TicketFacade
             $ticketUrl,
         );
 
-        // Notify admins too — they need to see all new tickets.
         $this->notificationFacade->notifyRole(
             'admin',
             NotificationFacade::TYPE_TICKET_CREATED,
             "New ticket #{$ticket->id} \"{$ticket->title}\" was created by {$creatorName}.",
             $ticketUrl,
         );
+
+        // Email all approved support users.
+        $supportUsers = $this->userRepository->findByRole('support')
+            ->where('status', 'approved')
+            ->fetchAll();
+
+        $this->mailService->sendTicketCreated($ticket, $supportUsers);
 
         return $ticket;
     }
@@ -89,7 +99,8 @@ final class TicketFacade
     }
 
     /**
-     * Assigns a ticket to a support user and notifies the assignee.
+     * Assigns a ticket to a support user; notifies the assignee via in-app
+     * notification and email.
      */
     public function assign(int $ticketId, int $assignedTo): void
     {
@@ -102,12 +113,21 @@ final class TicketFacade
 
         $title = $ticket ? "\"{$ticket->title}\"" : "#{$ticketId}";
 
+        // In-app notification.
         $this->notificationFacade->notify(
             $assignedTo,
             NotificationFacade::TYPE_TICKET_ASSIGNED,
             "Ticket #{$ticketId} {$title} has been assigned to you.",
             '/ticket/detail/' . $ticketId,
         );
+
+        // Email the assignee.
+        if ($ticket !== null) {
+            $assignee = $this->userRepository->findById($assignedTo);
+            if ($assignee !== null) {
+                $this->mailService->sendTicketAssigned($ticket, $assignee);
+            }
+        }
     }
 
     /**
@@ -115,11 +135,12 @@ final class TicketFacade
      *
      * Rules:
      *   - Closed tickets can only be reopened by admins.
-     *   - Notifies the ticket creator on every status change.
+     *   - Notifies the ticket creator on every status change (in-app + email).
      *
+     * @param int  $changedBy  User ID of the person making the change (0 = unknown)
      * @throws \RuntimeException on invalid transition or unknown ticket
      */
-    public function changeStatus(int $id, string $newStatus, bool $isAdmin): void
+    public function changeStatus(int $id, string $newStatus, bool $isAdmin, int $changedBy = 0): void
     {
         $ticket = $this->ticketRepository->findById($id);
         if ($ticket === null) {
@@ -135,6 +156,8 @@ final class TicketFacade
             throw new \RuntimeException('Only administrators can reopen a closed ticket.');
         }
 
+        $oldStatus = (string) $ticket->status;
+
         $this->ticketRepository->update($id, [
             'status'     => $newStatus,
             'updated_at' => new \DateTimeImmutable(),
@@ -147,12 +170,26 @@ final class TicketFacade
             default       => $newStatus,
         };
 
+        // In-app notification to the ticket creator.
         $this->notificationFacade->notify(
             (int) $ticket->created_by,
             NotificationFacade::TYPE_TICKET_STATUS_CHANGED,
             "Your ticket #{$id} \"{$ticket->title}\" status has changed to {$label}.",
             '/ticket/detail/' . $id,
         );
+
+        // Email the ticket creator.
+        $creator = $this->userRepository->findById((int) $ticket->created_by);
+        if ($creator !== null) {
+            // Re-fetch ticket with new status for the email template.
+            $updatedTicket = $this->ticketRepository->findById($id);
+            $this->mailService->sendTicketStatusChanged(
+                $updatedTicket ?? $ticket,
+                $creator,
+                $oldStatus,
+                $changedBy,
+            );
+        }
     }
 
     /**
@@ -220,7 +257,7 @@ final class TicketFacade
             'path'      => 'uploads/tickets/' . $ticketId . '/' . $filename,
         ]);
 
-        // Notify assigned support user.
+        // Notify assigned support user (in-app only — no email for image uploads).
         $ticket = $this->ticketRepository->findById($ticketId);
         if ($ticket && $ticket->assigned_to) {
             $this->notificationFacade->notify(

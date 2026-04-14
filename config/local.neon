@@ -1,5 +1,13 @@
 parameters:
     debugMode: false
+    appUrl: 'http://localhost:8080'
+    mailFrom: 'OSSP MOP <noreply@app.local>'
+
+# Nette MailExtension config — creates mail.mailer as SmtpMailer automatically.
+mail:
+    smtp: true
+    host: mailpit
+    port: 1025
 
 database:
     dsn: 'mysql:host=database;dbname=app;charset=utf8mb4'

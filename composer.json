@@ -4,16 +4,17 @@
     "type": "project",
     "require": {
         "php": ">=8.1",
+        "latte/latte": "^3.0",
         "nette/application": "^3.2",
         "nette/bootstrap": "^3.2",
         "nette/database": "^3.2",
         "nette/di": "^3.1",
         "nette/forms": "^3.2",
         "nette/http": "^3.2",
+        "nette/mail": "^4.0",
         "nette/routing": "^3.1",
         "nette/security": "^3.2",
         "nette/utils": "^4.0",
-        "latte/latte": "^3.0",
         "tracy/tracy": "^2.10"
     },
     "autoload": {

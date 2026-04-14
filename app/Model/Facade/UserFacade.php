@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Model\Facade;
 
-use App\Model\Mail\MockMailer;
+use App\Model\Mail\MailService;
 use App\Model\Repository\UserRepository;
 use Nette\Database\Table\ActiveRow;
 
@@ -16,9 +16,9 @@ use Nette\Database\Table\ActiveRow;
 final class UserFacade
 {
     public function __construct(
-        private readonly UserRepository       $userRepository,
-        private readonly MockMailer           $mailer,
-        private readonly NotificationFacade   $notificationFacade,
+        private readonly UserRepository     $userRepository,
+        private readonly MailService        $mailService,
+        private readonly NotificationFacade $notificationFacade,
     ) {
     }
 
@@ -28,7 +28,8 @@ final class UserFacade
 
     /**
      * Registers a new user with status = pending and role = employee.
-     * Notifies every admin after insertion.
+     * Sends a welcome email to the new user and notifies every admin
+     * via email and in-app notification.
      *
      * @param  array{
      *     first_name: string,
@@ -56,7 +57,24 @@ final class UserFacade
             'status'        => 'pending',
         ]);
 
-        $this->notifyAdminsNewUser($row);
+        // Email the new user a welcome / pending-approval notice.
+        $this->mailService->sendWelcome($row);
+
+        // Email all admins and create in-app notifications for each.
+        $admins = $this->userRepository->findByRole('admin')
+            ->where('status', 'approved')
+            ->fetchAll();
+
+        $this->mailService->sendAdminNewPending($row, $admins);
+
+        foreach ($admins as $admin) {
+            $this->notificationFacade->notify(
+                (int) $admin->id,
+                NotificationFacade::TYPE_USER_PENDING,
+                "{$row->first_name} {$row->last_name} ({$row->email}) has registered and is awaiting approval.",
+                '/admin/user-approval',
+            );
+        }
 
         return $row;
     }
@@ -136,14 +154,19 @@ final class UserFacade
     // ------------------------------------------------------------------
 
     /**
-     * Replaces a user's password with a newly hashed one.
-     * Never stores the plain-text password.
+     * Replaces a user's password with a newly hashed one and notifies the
+     * user by email that their password was changed by an administrator.
      */
     public function resetPassword(int $userId, string $newPassword): void
     {
         $this->userRepository->update($userId, [
             'password_hash' => password_hash($newPassword, PASSWORD_BCRYPT),
         ]);
+
+        $user = $this->userRepository->findById($userId);
+        if ($user !== null) {
+            $this->mailService->sendPasswordChanged($user);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -165,20 +188,15 @@ final class UserFacade
     // ------------------------------------------------------------------
 
     /**
-     * Approves a pending user account and notifies the user.
+     * Approves a pending user account, notifies the user by email,
+     * and creates an in-app notification.
      */
     public function approve(int $userId): void
     {
         $user = $this->requireUser($userId);
         $this->userRepository->updateStatus($userId, 'approved');
 
-        $this->mailer->send(
-            $user->email,
-            'Your account has been approved — OSSP MOP',
-            "Hello {$user->first_name},\n\n"
-                . "Your account has been approved. You can now log in at the OSSP MOP portal.\n\n"
-                . "Regards,\nOSSP MOP Administration",
-        );
+        $this->mailService->sendApproved($user);
 
         $this->notificationFacade->notify(
             $userId,
@@ -189,26 +207,15 @@ final class UserFacade
     }
 
     /**
-     * Rejects a pending user account and notifies the user.
-     * An optional reason is appended to the notification message.
+     * Rejects a pending user account, notifies the user by email (including
+     * any reason), and creates an in-app notification.
      */
     public function reject(int $userId, ?string $reason = null): void
     {
         $user = $this->requireUser($userId);
         $this->userRepository->updateStatus($userId, 'rejected');
 
-        $reasonText = ($reason !== null && trim($reason) !== '')
-            ? "\n\nReason: " . trim($reason)
-            : '';
-
-        $this->mailer->send(
-            $user->email,
-            'Your account registration — OSSP MOP',
-            "Hello {$user->first_name},\n\n"
-                . "Unfortunately your account registration has been rejected.{$reasonText}\n\n"
-                . "If you believe this is a mistake, please contact support.\n\n"
-                . "Regards,\nOSSP MOP Administration",
-        );
+        $this->mailService->sendRejected($user, $reason);
 
         $reasonSuffix = ($reason !== null && trim($reason) !== '')
             ? ' Reason: ' . trim($reason)
@@ -234,31 +241,6 @@ final class UserFacade
         }
 
         return $user;
-    }
-
-    private function notifyAdminsNewUser(ActiveRow $newUser): void
-    {
-        $admins = $this->userRepository->findByRole('admin');
-
-        foreach ($admins as $admin) {
-            $this->mailer->send(
-                $admin->email,
-                'New user pending approval — OSSP MOP',
-                "Hello {$admin->first_name},\n\n"
-                    . "A new user has registered and is waiting for your approval:\n\n"
-                    . "  Name:  {$newUser->first_name} {$newUser->last_name}\n"
-                    . "  Email: {$newUser->email}\n\n"
-                    . "Please log in to the admin panel to approve or reject the account.\n\n"
-                    . "Regards,\nOSSP MOP System",
-            );
-
-            $this->notificationFacade->notify(
-                (int) $admin->id,
-                NotificationFacade::TYPE_USER_PENDING,
-                "{$newUser->first_name} {$newUser->last_name} ({$newUser->email}) has registered and is awaiting approval.",
-                '/admin/user-approval',
-            );
-        }
     }
 
     /**

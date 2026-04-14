@@ -1,5 +1,4 @@
 services:
-    - App\Model\Mail\MockMailer
     - App\Model\Repository\UserRepository
     - App\Model\Repository\ItemTypeRepository
     - App\Model\Repository\LocationRepository
@@ -9,7 +8,17 @@ services:
     - App\Model\Repository\TicketImageRepository
     - App\Model\Repository\DamagePointRepository
     - App\Model\Repository\NotificationRepository
+    - App\Model\Repository\EmailLogRepository
     - App\Model\Facade\NotificationFacade
+    # MailService: Nette\Mail\Mailer is autowired from mail.mailer (created by MailExtension
+    # via the mail: section in local.neon). Scalar args passed by name so DI can still
+    # autowire the class-typed dependencies (Mailer, repositories).
+    mailService:
+        class: App\Model\Mail\MailService
+        arguments:
+            from: %mailFrom%
+            appUrl: %appUrl%
+            tempDir: '%tempDir%/latte-mail'
     - App\Model\Facade\UserFacade
     - App\Model\Facade\ItemFacade
     - App\Model\Facade\TicketFacade

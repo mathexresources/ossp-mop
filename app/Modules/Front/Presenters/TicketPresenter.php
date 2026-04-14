@@ -348,6 +348,7 @@ final class TicketPresenter extends SecuredPresenter
                 (int) $this->targetTicket->id,
                 $values->status,
                 $this->roleHelper->isAdmin(),
+                (int) $this->getUser()->getId(),
             );
             $this->flashMessage('Ticket status updated.', 'success');
         } catch (\RuntimeException $e) {
