@@ -1,0 +1,57 @@
+{layout 'layout.latte'}
+
+{block subject}New user registration pending approval — {$newUser->first_name} {$newUser->last_name}{/block}
+
+{block content}
+<h2 style="margin:0 0 16px;font-size:20px;color:#1a1a2e;">
+    New registration awaiting approval
+</h2>
+
+<p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#444444;">
+    Hello {$admin->first_name}, a new user has registered and is waiting
+    for your approval before they can access the portal.
+</p>
+
+<table cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="margin:0 0 24px;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;">
+<tr style="background:#f8f9fa;">
+    <td style="padding:10px 16px;font-size:13px;font-weight:bold;color:#6c757d;
+               border-bottom:1px solid #dee2e6;width:160px;">Field</td>
+    <td style="padding:10px 16px;font-size:13px;font-weight:bold;color:#6c757d;
+               border-bottom:1px solid #dee2e6;">Value</td>
+</tr>
+<tr>
+    <td style="padding:10px 16px;font-size:14px;color:#6c757d;
+               border-bottom:1px solid #f1f3f5;">Full Name</td>
+    <td style="padding:10px 16px;font-size:14px;color:#212529;font-weight:bold;
+               border-bottom:1px solid #f1f3f5;">
+        {$newUser->first_name} {$newUser->last_name}
+    </td>
+</tr>
+<tr>
+    <td style="padding:10px 16px;font-size:14px;color:#6c757d;
+               border-bottom:1px solid #f1f3f5;">Email</td>
+    <td style="padding:10px 16px;font-size:14px;color:#212529;
+               border-bottom:1px solid #f1f3f5;">{$newUser->email}</td>
+</tr>
+<tr>
+    <td style="padding:10px 16px;font-size:14px;color:#6c757d;">Role Requested</td>
+    <td style="padding:10px 16px;font-size:14px;color:#212529;">Employee</td>
+</tr>
+</table>
+
+<p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#444444;">
+    Please log in to the admin panel to approve or reject this registration.
+</p>
+
+<table cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="background:#1a1a2e;border-radius:6px;padding:12px 24px;">
+    <a href="{$appUrl}/admin/user-approval"
+       style="color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;">
+        Review Pending Users →
+    </a>
+</td>
+</tr>
+</table>
+{/block}

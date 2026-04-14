@@ -1,0 +1,51 @@
+{layout 'layout.latte'}
+
+{block subject}Ticket #{$ticket->id} status updated to {$newStatus}{/block}
+
+{block content}
+<h2 style="margin:0 0 6px;font-size:20px;color:#1a1a2e;">
+    Your ticket status has changed
+</h2>
+<p style="margin:0 0 20px;font-size:13px;color:#6c757d;">
+    Ticket #<strong>{$ticket->id}</strong> — {$ticket->title}
+</p>
+
+<table cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="margin:0 0 24px;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;">
+<tr>
+    <td style="padding:14px 20px;border-bottom:1px solid #f1f3f5;width:50%;">
+        <p style="margin:0 0 4px;font-size:12px;color:#6c757d;font-weight:bold;
+                  text-transform:uppercase;letter-spacing:.5px;">Previous Status</p>
+        <p style="margin:0;font-size:16px;font-weight:bold;color:#6c757d;">
+            {$oldStatus}
+        </p>
+    </td>
+    <td style="padding:14px 20px;border-bottom:1px solid #f1f3f5;
+               border-left:1px solid #f1f3f5;">
+        <p style="margin:0 0 4px;font-size:12px;color:#1a1a2e;font-weight:bold;
+                  text-transform:uppercase;letter-spacing:.5px;">New Status</p>
+        <p style="margin:0;font-size:16px;font-weight:bold;color:#1a1a2e;">
+            {$newStatus}
+        </p>
+    </td>
+</tr>
+<tr>
+    <td colspan="2" style="padding:12px 20px;">
+        <p style="margin:0;font-size:13px;color:#6c757d;">
+            Changed by <strong>{$changedByName}</strong>
+        </p>
+    </td>
+</tr>
+</table>
+
+<table cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="background:#1a1a2e;border-radius:6px;padding:12px 24px;">
+    <a href="{$appUrl}/ticket/detail/{$ticket->id}"
+       style="color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;">
+        View Ticket #{$ticket->id} →
+    </a>
+</td>
+</tr>
+</table>
+{/block}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{block subject}{$appName}{/block}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f0f2f5;font-family:Arial,Helvetica,sans-serif;color:#333333;">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#f0f2f5;padding:32px 0;">
+<tr>
+<td align="center">
+
+    <table width="600" cellpadding="0" cellspacing="0" border="0"
+           style="background:#ffffff;border-radius:8px;overflow:hidden;
+                  box-shadow:0 2px 8px rgba(0,0,0,.08);max-width:600px;">
+
+        <!-- HEADER -->
+        <tr>
+            <td style="background:#1a1a2e;padding:24px 32px;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td>
+                        <span style="color:#ffffff;font-size:22px;font-weight:bold;
+                                     letter-spacing:.5px;">{$appName}</span>
+                        <span style="display:inline-block;background:#f59e0b;color:#1a1a2e;
+                                     font-size:11px;font-weight:bold;padding:2px 8px;
+                                     border-radius:4px;margin-left:8px;
+                                     vertical-align:middle;">PORTAL</span>
+                    </td>
+                </tr>
+                </table>
+            </td>
+        </tr>
+
+        <!-- CONTENT -->
+        <tr>
+            <td style="padding:32px;">
+                {block content}{/block}
+            </td>
+        </tr>
+
+        <!-- DIVIDER -->
+        <tr>
+            <td style="padding:0 32px;">
+                <hr style="border:none;border-top:1px solid #e9ecef;margin:0;">
+            </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+            <td style="background:#f8f9fa;padding:20px 32px;">
+                <p style="margin:0 0 6px;font-size:12px;color:#6c757d;line-height:1.5;">
+                    You received this email because you are a registered user of {$appName}.
+                </p>
+                <p style="margin:0;font-size:12px;color:#6c757d;">
+                    If you have questions, please contact your system administrator.
+                </p>
+            </td>
+        </tr>
+
+    </table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>

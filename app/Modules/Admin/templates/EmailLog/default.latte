@@ -1,0 +1,92 @@
+{block content}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">{$title}</h1>
+        <p class="text-muted mb-0 small">{$total} total entries</p>
+    </div>
+</div>
+
+{if $emails->count() === 0}
+    <div class="alert alert-info">
+        No emails have been sent yet.
+    </div>
+{else}
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-dark">
+                <tr>
+                    <th style="width:160px;">Date / Time</th>
+                    <th>Recipient</th>
+                    <th>Subject</th>
+                    <th style="width:140px;">Type</th>
+                    <th style="width:90px;">Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                {foreach $emails as $email}
+                <tr>
+                    <td class="text-muted small align-middle" style="white-space:nowrap;">
+                        {$email->created_at|date:'d M Y H:i'}
+                    </td>
+                    <td class="align-middle small">{$email->recipient}</td>
+                    <td class="align-middle">
+                        {$email->subject}
+                        {if $email->error_message}
+                            <div class="text-danger small mt-1">
+                                <strong>Error:</strong> {$email->error_message|truncate:200}
+                            </div>
+                        {/if}
+                    </td>
+                    <td class="align-middle">
+                        <span class="badge bg-secondary">{$email->type}</span>
+                    </td>
+                    <td class="align-middle">
+                        {if $email->status === 'sent'}
+                            <span class="badge bg-success">Sent</span>
+                        {else}
+                            <span class="badge bg-danger">Failed</span>
+                        {/if}
+                    </td>
+                </tr>
+                {/foreach}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {* Pagination *}
+    {if $paginator->pageCount > 1}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {if !$paginator->hasPreviousPage}disabled{/if}">
+                <a class="page-link" href="{link default, page: $paginator->firstPage}">«</a>
+            </li>
+            <li class="page-item {if !$paginator->hasPreviousPage}disabled{/if}">
+                <a class="page-link" href="{link default, page: $paginator->page - 1}">‹</a>
+            </li>
+
+            {var $start = max($paginator->firstPage, $paginator->page - 2)}
+            {var $end   = min($paginator->lastPage,  $paginator->page + 2)}
+
+            {for $i = $start; $i <= $end; $i++}
+            <li class="page-item {if $i === $paginator->page}active{/if}">
+                <a class="page-link" href="{link default, page: $i}">{$i}</a>
+            </li>
+            {/for}
+
+            <li class="page-item {if !$paginator->hasNextPage}disabled{/if}">
+                <a class="page-link" href="{link default, page: $paginator->page + 1}">›</a>
+            </li>
+            <li class="page-item {if !$paginator->hasNextPage}disabled{/if}">
+                <a class="page-link" href="{link default, page: $paginator->lastPage}">»</a>
+            </li>
+        </ul>
+        <p class="text-center text-muted small">
+            Page {$paginator->page} of {$paginator->pageCount}
+            ({$paginator->itemCount} entries)
+        </p>
+    </nav>
+    {/if}
+{/if}
+{/block}

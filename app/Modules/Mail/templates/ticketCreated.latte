@@ -1,0 +1,53 @@
+{layout 'layout.latte'}
+
+{block subject}New ticket #{$ticket->id} — {$ticket->title}{/block}
+
+{block content}
+<h2 style="margin:0 0 6px;font-size:20px;color:#1a1a2e;">
+    New ticket submitted
+</h2>
+<p style="margin:0 0 20px;font-size:13px;color:#6c757d;">
+    Ticket #<strong>{$ticket->id}</strong> requires attention
+</p>
+
+<table cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="margin:0 0 24px;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;">
+<tr>
+    <td style="background:#f8f9fa;padding:10px 16px;font-size:13px;font-weight:bold;
+               color:#6c757d;border-bottom:1px solid #dee2e6;width:130px;">Title</td>
+    <td style="background:#f8f9fa;padding:10px 16px;font-size:14px;color:#212529;
+               font-weight:bold;border-bottom:1px solid #dee2e6;">
+        {$ticket->title}
+    </td>
+</tr>
+<tr>
+    <td style="padding:10px 16px;font-size:13px;color:#6c757d;
+               border-bottom:1px solid #f1f3f5;vertical-align:top;">Item</td>
+    <td style="padding:10px 16px;font-size:14px;color:#212529;
+               border-bottom:1px solid #f1f3f5;">{$itemName}</td>
+</tr>
+<tr>
+    <td style="padding:10px 16px;font-size:13px;color:#6c757d;
+               border-bottom:1px solid #f1f3f5;vertical-align:top;">Created by</td>
+    <td style="padding:10px 16px;font-size:14px;color:#212529;
+               border-bottom:1px solid #f1f3f5;">{$creatorName}</td>
+</tr>
+<tr>
+    <td style="padding:10px 16px;font-size:13px;color:#6c757d;vertical-align:top;">Description</td>
+    <td style="padding:10px 16px;font-size:14px;color:#212529;line-height:1.6;">
+        {substr(strip_tags((string) $ticket->description), 0, 300)}{if strlen((string) $ticket->description) > 300}…{/if}
+    </td>
+</tr>
+</table>
+
+<table cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="background:#1a1a2e;border-radius:6px;padding:12px 24px;">
+    <a href="{$appUrl}/ticket/detail/{$ticket->id}"
+       style="color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;">
+        View Ticket #{$ticket->id} →
+    </a>
+</td>
+</tr>
+</table>
+{/block}
