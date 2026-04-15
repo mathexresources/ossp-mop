@@ -1,13 +1,19 @@
 {block content}
 <div class="container">
 
-{* ── Page header ────────────────────────────────────────────────────── *}
+{* ── Page header ─────────────────────────────────────────────────────── *}
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h1 class="h3 mb-1">{$ticket->title}</h1>
-        <span class="text-muted small">Ticket #{$ticket->id}</span>
+        <span class="text-muted small">
+            Ticket #{$ticket->id}
+            &middot;
+            <span class="badge badge-status-{$ticket->status}">{ucwords(str_replace('_', ' ', $ticket->status))}</span>
+        </span>
     </div>
-    <a href="{link default}" class="btn btn-outline-secondary btn-sm">&larr; All Tickets</a>
+    <a href="{link default}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>All Tickets
+    </a>
 </div>
 
 <div class="row g-4">
@@ -21,13 +27,15 @@
         {if $item}
             {var $itemType = $item->ref('item_types', 'item_type_id')}
             {var $itemLoc  = $item->ref('locations', 'location_id')}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header fw-semibold">Item</div>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-box-seam me-2 text-muted"></i>Item
+                </div>
                 <div class="card-body">
-                    <dl class="row mb-0">
+                    <dl class="row mb-0 small">
                         <dt class="col-sm-3">Name</dt>
                         <dd class="col-sm-9">
-                            <a href="{link :Front:Item:detail $item->id}" class="text-decoration-none">
+                            <a href="{link :Front:Item:detail $item->id}" class="fw-semibold text-decoration-none">
                                 {$item->name}
                             </a>
                         </dd>
@@ -36,39 +44,38 @@
                             <span class="badge bg-secondary">{$itemType?->name ?? '—'}</span>
                         </dd>
                         <dt class="col-sm-3">Location</dt>
-                        <dd class="col-sm-9">{$itemLoc?->name ?? '—'}</dd>
+                        <dd class="col-sm-9 mb-0">{$itemLoc?->name ?? '—'}</dd>
                     </dl>
                 </div>
             </div>
         {/if}
 
         {* Description *}
-        <div class="card shadow-sm mb-4">
-            <div class="card-header fw-semibold">Description</div>
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-text-left me-2 text-muted"></i>Description
+            </div>
             <div class="card-body">
-                <p class="mb-0" style="white-space: pre-wrap;">{$ticket->description}</p>
+                <p class="mb-0 text-pre-wrap">{$ticket->description}</p>
             </div>
         </div>
 
         {* Images gallery *}
-        <div class="card shadow-sm mb-4">
-            <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-                <span>Images</span>
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-images me-2 text-muted"></i>Images</span>
                 <span class="badge bg-secondary">{count($images)}</span>
             </div>
             <div class="card-body">
                 {if count($images) > 0}
-                    <div class="row g-2 mb-3">
+                    <div class="row g-2 mb-3 img-gallery">
                         {foreach $images as $image}
                             <div class="col-6 col-md-4 col-lg-3 position-relative">
-                                {* Thumbnail — click opens modal *}
                                 <a href="#" data-bs-toggle="modal" data-bs-target="#imgModal{$image->id}">
                                     <img src="/{$image->path}"
-                                         class="img-thumbnail w-100"
-                                         style="height:90px;object-fit:cover;"
+                                         class="img-thumb"
                                          alt="Ticket image">
                                 </a>
-                                {* Delete button (support+) *}
                                 {if $canDeleteImage}
                                     <form method="post"
                                           action="{link deleteImage!, imageId: $image->id}"
@@ -76,12 +83,12 @@
                                         <button type="submit"
                                                 class="btn btn-danger btn-sm py-0 px-1 lh-1"
                                                 onclick="return confirm('Delete this image?')"
-                                                title="Delete image">&times;</button>
+                                                title="Delete image"
+                                                style="font-size:.8rem;">&times;</button>
                                     </form>
                                 {/if}
                             </div>
 
-                            {* Lightbox modal *}
                             <div class="modal fade" id="imgModal{$image->id}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-lg modal-dialog-centered">
                                     <div class="modal-content bg-dark">
@@ -101,7 +108,6 @@
                     <p class="text-muted fst-italic small mb-0">No images attached.</p>
                 {/if}
 
-                {* Add image form (owner if open, or support+) *}
                 {if $canAddImage}
                     {if count($images) > 0}<hr class="my-2">{/if}
                     <div class="mt-2">
@@ -112,24 +118,26 @@
             </div>
         </div>
 
-        {* Metadata *}
-        <div class="card shadow-sm">
-            <div class="card-header fw-semibold">Metadata</div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-4">Created by</dt>
+        {* Metadata timeline *}
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-clock me-2 text-muted"></i>Timeline
+            </div>
+            <div class="card-body py-2">
+                <dl class="row mb-0 small">
+                    <dt class="col-sm-4 text-muted">Created by</dt>
                     <dd class="col-sm-8">
                         {if $creator}
                             {$creator->first_name} {$creator->last_name}
-                            <span class="text-muted small">({$creator->email})</span>
+                            <span class="text-muted">({$creator->email})</span>
                         {else}
                             <em class="text-muted">Unknown</em>
                         {/if}
                     </dd>
-                    <dt class="col-sm-4">Created at</dt>
+                    <dt class="col-sm-4 text-muted">Created</dt>
                     <dd class="col-sm-8">{$ticket->created_at|date:'d M Y, H:i'}</dd>
-                    <dt class="col-sm-4">Last updated</dt>
-                    <dd class="col-sm-8">{$ticket->updated_at|date:'d M Y, H:i'}</dd>
+                    <dt class="col-sm-4 text-muted mb-0">Last updated</dt>
+                    <dd class="col-sm-8 mb-0">{$ticket->updated_at|date:'d M Y, H:i'}</dd>
                 </dl>
             </div>
         </div>
@@ -137,58 +145,43 @@
     </div>
 
     {* ==============================================================
-       RIGHT COLUMN — damage points, status, actions
+       RIGHT COLUMN — damage points, status, assignment, actions
        ============================================================== *}
     <div class="col-lg-4">
 
-        {* ── Damage Points panel ─────────────────────────────────────── *}
-        <div class="card shadow-sm mb-4">
-            <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-                <span>Damage Points</span>
+        {* Damage Points panel *}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-geo-alt me-2 text-muted"></i>Damage Points</span>
                 <span class="badge bg-secondary" id="dp-count-badge">{count($damagePoints)}</span>
             </div>
             <div class="card-body p-2">
 
                 {if !$blueprintPath}
-
-                    {* No blueprint — friendly placeholder *}
                     <div class="text-center py-3 text-muted">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor"
-                             class="bi bi-image mb-2 opacity-25" viewBox="0 0 16 16">
-                            <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
-                            <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
-                        </svg>
-                        <p class="small mb-0 fst-italic">No blueprint available for this item type.</p>
+                        <i class="bi bi-image" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:.75rem;"></i>
+                        <p class="small mb-0 fst-italic">No blueprint for this item type.</p>
                         {if $roleHelper->isAdmin()}
                             <p class="small mt-1 mb-0">
                                 <a href="{link :Admin:ItemType:default}" class="text-decoration-none">
-                                    Upload one in Admin &rarr; Item Types.
+                                    Upload in Admin &rarr; Item Types
                                 </a>
                             </p>
                         {/if}
                     </div>
-
                 {else}
-
-                    {* Blueprint + interactive marker layer *}
                     <div id="damage-map"
                          data-ticket-id="{$ticket->id}"
                          data-add-url="{link :Api:DamagePoint:add}"
                          data-remove-url="{link :Api:DamagePoint:remove, id: 0}"
                          data-can-manage="{$canManageDamagePoints ? '1' : '0'}"
-                         data-points="{$damagePointsJson}"
-                    >
-                        {* Blueprint wrapper — markers are positioned absolutely inside this *}
-                        <div id="blueprint-wrapper" style="position:relative;display:block;line-height:0;">
+                         data-points="{$damagePointsJson}">
+                        <div id="blueprint-wrapper">
                             <img id="blueprint-img"
                                  src="/{$blueprintPath}"
-                                 style="width:100%;display:block;user-select:none;"
                                  draggable="false"
                                  alt="Blueprint">
-                            {* JS injects .damage-marker elements here *}
                         </div>
-
-                        {* Hint shown only when the user can interact *}
                         {if $canManageDamagePoints}
                             <p class="text-muted small px-1 mt-1 mb-0 fst-italic">
                                 Click the blueprint to mark a damage point.
@@ -198,34 +191,27 @@
                                 Ticket is closed — damage points are read-only.
                             </p>
                         {/if}
-
-                        {* Damage point list below the blueprint *}
-                        <ul id="dp-list" class="list-group list-group-flush mt-2" style="font-size:.85rem;">
-                            {* Populated / updated by JS *}
-                        </ul>
+                        <ul id="dp-list" class="list-group list-group-flush mt-2" style="font-size:.85rem;"></ul>
                     </div>
-
                 {/if}
 
             </div>
         </div>
 
-        {* Status + assigned *}
-        <div class="card shadow-sm mb-4">
-            <div class="card-header fw-semibold">Status</div>
+        {* Status card *}
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2 text-muted"></i>Status &amp; Assignment
+            </div>
             <div class="card-body">
-                <div class="mb-2">
-                    {if $ticket->status === 'open'}
-                        <span class="badge bg-danger fs-6">Open</span>
-                    {elseif $ticket->status === 'in_progress'}
-                        <span class="badge bg-warning text-dark fs-6">In Progress</span>
-                    {else}
-                        <span class="badge bg-success fs-6">Closed</span>
-                    {/if}
+                <div class="mb-3">
+                    <span class="badge badge-status-{$ticket->status} fs-6">
+                        {ucwords(str_replace('_', ' ', $ticket->status))}
+                    </span>
                 </div>
                 <dl class="row mb-0 small">
                     <dt class="col-5">Assigned to</dt>
-                    <dd class="col-7">
+                    <dd class="col-7 mb-0">
                         {if $assignee}
                             {$assignee->first_name} {$assignee->last_name}
                         {else}
@@ -238,8 +224,10 @@
 
         {* Admin: assign ticket *}
         {if $canAssign}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header fw-semibold">Assign Ticket</div>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-person-fill-gear me-2 text-muted"></i>Assign Ticket
+                </div>
                 <div class="card-body">
                     {control assignForm}
                 </div>
@@ -248,39 +236,41 @@
 
         {* Support + admin: change status *}
         {if $canChangeStatus}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header fw-semibold">Update Status</div>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-arrow-repeat me-2 text-muted"></i>Update Status
+                </div>
                 <div class="card-body">
                     {control changeStatusForm}
                 </div>
             </div>
         {/if}
 
-        {* Support + admin: add service record to the linked item *}
+        {* Support + admin: add service record *}
         {if $canAddServiceRecord}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header fw-semibold">Add Item Service Record</div>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-wrench me-2 text-muted"></i>Add Service Record
+                </div>
                 <div class="card-body">
                     {control addServiceRecordForm}
                 </div>
             </div>
         {/if}
 
-        {* Edit link — employee owner (open) or admin *}
-        {if $canEdit}
-            <div class="d-grid mb-3">
-                <a href="{link edit $ticket->id}" class="btn btn-outline-secondary btn-sm">
-                    &#9998; Edit Ticket
-                </a>
-            </div>
-        {/if}
-
-        {* Delete — admin only *}
-        {if $canDeleteTicket}
-            <div class="d-grid">
-                <a href="{link delete $ticket->id}" class="btn btn-outline-danger btn-sm">
-                    &#128465; Delete Ticket
-                </a>
+        {* Action buttons *}
+        {if $canEdit || $canDeleteTicket}
+            <div class="d-grid gap-2">
+                {if $canEdit}
+                    <a href="{link edit $ticket->id}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-pencil me-1"></i>Edit Ticket
+                    </a>
+                {/if}
+                {if $canDeleteTicket}
+                    <a href="{link delete $ticket->id}" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-trash me-1"></i>Delete Ticket
+                    </a>
+                {/if}
             </div>
         {/if}
 
@@ -289,7 +279,7 @@
 </div>
 </div>
 
-{* ── Add-damage-point modal ──────────────────────────────────────────── *}
+{* ── Add damage-point modal ──────────────────────────────────────────── *}
 <div class="modal fade" id="dpModal" tabindex="-1" aria-labelledby="dpModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -299,13 +289,13 @@
             </div>
             <div class="modal-body">
                 <label for="dp-modal-desc" class="form-label fw-semibold">
-                    Describe the damage <span class="text-danger">*</span>
+                    Describe the damage <span class="req">*</span>
                 </label>
                 <textarea id="dp-modal-desc"
                           class="form-control"
                           rows="3"
                           maxlength="500"
-                          placeholder="e.g. Cracked screen, lower-left corner…"></textarea>
+                          placeholder="e.g. Cracked screen, lower-left corner&hellip;"></textarea>
                 <div id="dp-modal-error" class="text-danger small mt-1"></div>
             </div>
             <div class="modal-footer">
@@ -315,61 +305,6 @@
         </div>
     </div>
 </div>
-
-<style>
-/* ── Form validation ── */
-.error { color: var(--bs-danger); font-size: .875em; display: block; margin-top: .25rem; }
-input.error, textarea.error, select.error { border-color: var(--bs-danger); }
-
-/* ── Damage markers ── */
-.damage-marker {
-    position: absolute;
-    width: 22px;
-    height: 22px;
-    background: #dc3545;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    cursor: pointer;
-    z-index: 10;
-    box-shadow: 0 2px 5px rgba(0,0,0,.45);
-    transition: transform .1s ease, background .1s ease;
-    pointer-events: auto;
-}
-.damage-marker:hover {
-    background: #b02a37;
-    transform: translate(-50%, -50%) scale(1.2);
-    z-index: 20;
-}
-/* Tooltip */
-.damage-marker .dp-tooltip {
-    display: none;
-    position: absolute;
-    bottom: 130%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,.82);
-    color: #fff;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 400;
-    white-space: normal;
-    word-break: break-word;
-    max-width: 180px;
-    min-width: 80px;
-    z-index: 30;
-    pointer-events: none;
-    text-align: center;
-}
-.damage-marker:hover .dp-tooltip { display: block; }
-</style>
 
 {block scripts}
 <script src="/js/damage-points.js"></script>

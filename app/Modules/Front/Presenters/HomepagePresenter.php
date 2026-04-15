@@ -8,8 +8,6 @@ final class HomepagePresenter extends BasePresenter
 {
     public function renderDefault(): void
     {
-        $this->template->appName = 'OSSP MOP';
-        $this->template->title = 'Homepage';
-        $this->template->phpVersion = PHP_VERSION;
+        $this->template->title = 'Home';
     }
 }

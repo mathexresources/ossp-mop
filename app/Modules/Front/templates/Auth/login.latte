@@ -12,11 +12,6 @@
 
                     <h1 class="h4 mb-4 text-center">Log In to OSSP MOP</h1>
 
-                    {* Flash messages forwarded from other actions *}
-                    {foreach $flashes as $flash}
-                        <div class="alert alert-{$flash->type} py-2">{$flash->message}</div>
-                    {/foreach}
-
                     {form loginForm}
 
                     {* Global form errors (wrong credentials, account status) *}

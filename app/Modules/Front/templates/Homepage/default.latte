@@ -2,19 +2,184 @@
 
 {block content}
 <div class="container">
-    <div class="row justify-content-center mt-5">
-        <div class="col-md-8 text-center">
-            <div class="card shadow-sm">
-                <div class="card-body py-5">
-                    <h1 class="display-5 fw-bold text-success mb-3">Application Running</h1>
-                    <p class="lead mb-4">{$appName} is up and ready.</p>
-                    <hr>
-                    <div class="text-muted small mt-3">
-                        <strong>PHP</strong> {$phpVersion}
+
+    {if $user->isLoggedIn()}
+
+        {* ── Logged-in: welcome banner + quick actions ─────────────── *}
+        {var $identity  = $user->getIdentity()}
+        {var $firstName = $identity?->getData()['first_name'] ?? 'User'}
+
+        <div class="row justify-content-center mt-4">
+            <div class="col-lg-10">
+
+                <div class="card mb-4"
+                     style="background:linear-gradient(135deg,var(--mop-primary) 0%,#2a6496 100%);border:none;">
+                    <div class="card-body py-4 px-4">
+                        <div class="d-flex align-items-center gap-3">
+                            {var $avClass  = 'av-' . mb_strtolower(mb_substr($firstName, 0, 1))}
+                            {var $lastName = $identity?->getData()['last_name'] ?? ''}
+                            {var $initials = mb_strtoupper(mb_substr($firstName, 0, 1)) . mb_strtoupper(mb_substr($lastName, 0, 1))}
+                            <span class="avatar avatar-lg {$avClass}">{$initials}</span>
+                            <div>
+                                <h2 class="h4 text-white mb-1">Welcome back, {$firstName}!</h2>
+                                <span class="badge badge-role-{$roleHelper->getRole()}">{$roleHelper->getRole()}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <div class="row g-3">
+
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{link :Front:Ticket:default}" class="card text-decoration-none h-100
+                                transition-shadow hover:shadow">
+                            <div class="card-body text-center py-4">
+                                <i class="bi bi-ticket-perforated" style="font-size:2rem;color:var(--mop-primary);"></i>
+                                <div class="fw-semibold mt-2">View Tickets</div>
+                                <div class="text-muted small">Browse all maintenance tickets</div>
+                            </div>
+                        </a>
+                    </div>
+
+                    {if $roleHelper->isEmployee()}
+                        <div class="col-sm-6 col-md-4">
+                            <a href="{link :Front:Ticket:create}" class="card text-decoration-none h-100">
+                                <div class="card-body text-center py-4">
+                                    <i class="bi bi-plus-circle" style="font-size:2rem;color:var(--mop-accent);"></i>
+                                    <div class="fw-semibold mt-2">Create Ticket</div>
+                                    <div class="text-muted small">Report a new issue</div>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="col-sm-6 col-md-4">
+                            <a href="{link :Front:Item:default}" class="card text-decoration-none h-100">
+                                <div class="card-body text-center py-4">
+                                    <i class="bi bi-box-seam" style="font-size:2rem;color:#457b9d;"></i>
+                                    <div class="fw-semibold mt-2">Browse Items</div>
+                                    <div class="text-muted small">View managed equipment</div>
+                                </div>
+                            </a>
+                        </div>
+                    {/if}
+
+                    {if $roleHelper->isSupport()}
+                        <div class="col-sm-6 col-md-4">
+                            <a href="{link :Front:Support:default}" class="card text-decoration-none h-100">
+                                <div class="card-body text-center py-4">
+                                    <i class="bi bi-headset" style="font-size:2rem;color:#2d6a4f;"></i>
+                                    <div class="fw-semibold mt-2">Support Tools</div>
+                                    <div class="text-muted small">Manage and resolve tickets</div>
+                                </div>
+                            </a>
+                        </div>
+                    {/if}
+
+                    {if $roleHelper->isAdmin()}
+                        <div class="col-sm-6 col-md-4">
+                            <a href="{link :Admin:Dashboard:default}" class="card text-decoration-none h-100">
+                                <div class="card-body text-center py-4">
+                                    <i class="bi bi-shield-check" style="font-size:2rem;color:var(--mop-danger);"></i>
+                                    <div class="fw-semibold mt-2">Admin Panel</div>
+                                    <div class="text-muted small">System management</div>
+                                </div>
+                            </a>
+                        </div>
+                    {/if}
+
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{link :Front:Notifications:default}" class="card text-decoration-none h-100">
+                            <div class="card-body text-center py-4">
+                                <i class="bi bi-bell" style="font-size:2rem;color:var(--mop-warning);"></i>
+                                <div class="fw-semibold mt-2">Notifications</div>
+                                <div class="text-muted small">
+                                    {if ($unreadNotificationCount ?? 0) > 0}
+                                        <span class="badge bg-danger">{$unreadNotificationCount} unread</span>
+                                    {else}
+                                        All caught up
+                                    {/if}
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{link :Front:Profile:edit}" class="card text-decoration-none h-100">
+                            <div class="card-body text-center py-4">
+                                <i class="bi bi-person-gear" style="font-size:2rem;color:#64748b;"></i>
+                                <div class="fw-semibold mt-2">My Profile</div>
+                                <div class="text-muted small">Edit your account details</div>
+                            </div>
+                        </a>
+                    </div>
+
+                </div>
+
             </div>
         </div>
-    </div>
+
+    {else}
+
+        {* ── Guest: welcome / marketing page ────────────────────────── *}
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-8 col-lg-6 text-center">
+
+                <div class="mb-4">
+                    <i class="bi bi-tools" style="font-size:4rem;color:var(--mop-primary);"></i>
+                    <h1 class="display-5 fw-bold mt-3 mb-2" style="color:var(--mop-primary);">OSSP MOP</h1>
+                    <p class="lead text-muted mb-4">
+                        Maintenance Operations Portal — track issues, manage equipment,
+                        and keep your operations running smoothly.
+                    </p>
+                </div>
+
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a href="{link :Front:Auth:login}"
+                       class="btn btn-lg px-5"
+                       style="background:var(--mop-primary);color:#fff;">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Log In
+                    </a>
+                    <a href="{link :Front:Auth:register}"
+                       class="btn btn-lg btn-outline-secondary px-5">
+                        <i class="bi bi-person-plus me-2"></i>Register
+                    </a>
+                </div>
+
+                <hr class="my-4">
+                <div class="row g-3 text-start">
+                    <div class="col-sm-4">
+                        <div class="d-flex gap-2 align-items-start">
+                            <i class="bi bi-ticket-perforated fs-4 mt-1" style="color:var(--mop-accent);"></i>
+                            <div>
+                                <div class="fw-semibold small">Ticket Tracking</div>
+                                <div class="text-muted small">Create and monitor maintenance tickets</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="d-flex gap-2 align-items-start">
+                            <i class="bi bi-box-seam fs-4 mt-1" style="color:var(--mop-primary);"></i>
+                            <div>
+                                <div class="fw-semibold small">Asset Management</div>
+                                <div class="text-muted small">Track equipment and service history</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="d-flex gap-2 align-items-start">
+                            <i class="bi bi-bell fs-4 mt-1" style="color:var(--mop-warning);"></i>
+                            <div>
+                                <div class="fw-semibold small">Notifications</div>
+                                <div class="text-muted small">Stay informed with real-time updates</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    {/if}
+
 </div>
 {/block}

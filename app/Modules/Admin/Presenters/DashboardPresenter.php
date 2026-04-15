@@ -26,22 +26,39 @@ final class DashboardPresenter extends BasePresenter
     {
         $this->template->title = 'Admin Dashboard';
 
-        // User statistics — via UserRepository inherited from BasePresenter.
+        // ── User statistics ──────────────────────────────────────────
         $this->template->usersByRole   = $this->userRepository->countByRole();
         $this->template->usersByStatus = $this->userRepository->countByStatus();
         $this->template->pendingCount  = $this->userRepository->countPending();
+        $this->template->totalUsers    = array_sum($this->userRepository->countByRole());
 
-        // Ticket statistics — counts only, no ticket business logic yet.
+        // ── Ticket statistics ────────────────────────────────────────
         $ticketRows = $this->db->query(
-            'SELECT status, COUNT(*) AS cnt FROM tickets GROUP BY status',
+            'SELECT status, COUNT(*) AS cnt FROM tickets WHERE deleted_at IS NULL GROUP BY status',
         )->fetchPairs('status', 'cnt');
 
-        $this->template->ticketsByStatus = array_merge(
+        $ticketsByStatus = array_merge(
             ['open' => 0, 'in_progress' => 0, 'closed' => 0],
             $ticketRows,
         );
 
-        $this->template->totalTickets = array_sum($this->template->ticketsByStatus);
-        $this->template->totalUsers   = array_sum($this->template->usersByRole);
+        $this->template->ticketsByStatus = $ticketsByStatus;
+        $this->template->totalTickets    = array_sum($ticketsByStatus);
+
+        // ── Item statistics ──────────────────────────────────────────
+        $this->template->totalItems = (int) $this->db->query(
+            'SELECT COUNT(*) FROM items',
+        )->fetchField();
+
+        // ── Recent activity: last 5 tickets ─────────────────────────
+        $this->template->recentTickets = $this->db->query(
+            'SELECT t.id, t.title, t.status, t.created_at,
+                    u.first_name, u.last_name
+             FROM tickets t
+             LEFT JOIN users u ON t.created_by = u.id
+             WHERE t.deleted_at IS NULL
+             ORDER BY t.created_at DESC
+             LIMIT 5',
+        )->fetchAll();
     }
 }

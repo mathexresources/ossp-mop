@@ -1,0 +1,152 @@
+{block content}
+<div class="container">
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0"><i class="bi bi-person-gear me-2 text-muted"></i>My Profile</h1>
+    <a href="{link :Front:Homepage:default}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-lg-8">
+
+    {* ── Avatar + role overview ──────────────────────────────────────── *}
+    <div class="card mb-4">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+            {var $avClass = 'av-' . mb_strtolower(mb_substr($profile->first_name ?? '?', 0, 1))}
+            <span class="avatar avatar-lg {$avClass}">{$initials}</span>
+            <div>
+                <div class="fw-bold fs-5 mb-1">{$profile->first_name} {$profile->last_name}</div>
+                <div class="text-muted small mb-1">{$profile->email}</div>
+                <span class="badge badge-role-{$profile->role}">{$profile->role}</span>
+                <span class="badge bg-secondary ms-1">{$profile->status}</span>
+            </div>
+        </div>
+    </div>
+
+    {* ── Profile edit form ───────────────────────────────────────────── *}
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-person me-2 text-muted"></i>Personal Information
+        </div>
+        <div class="card-body">
+            {form profileForm}
+
+            {foreach $form->getErrors() as $error}
+                <div class="alert alert-danger py-2 small">{$error}</div>
+            {/foreach}
+
+            <div class="row g-3">
+
+                <div class="col-sm-6">
+                    {var $e = $form['first_name']->getErrors()}
+                    <label n:name="first_name" class="form-label fw-semibold">
+                        First Name <span class="req">*</span>
+                    </label>
+                    <input n:name="first_name" class="form-control{if $e} is-invalid{/if}">
+                    {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                </div>
+
+                <div class="col-sm-6">
+                    {var $e = $form['last_name']->getErrors()}
+                    <label n:name="last_name" class="form-label fw-semibold">
+                        Last Name <span class="req">*</span>
+                    </label>
+                    <input n:name="last_name" class="form-control{if $e} is-invalid{/if}">
+                    {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                </div>
+
+                <div class="col-sm-6">
+                    {var $e = $form['phone']->getErrors()}
+                    <label n:name="phone" class="form-label">Phone Number</label>
+                    <input n:name="phone" class="form-control{if $e} is-invalid{/if}" placeholder="+420 600 000 000">
+                    {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                </div>
+
+                <div class="col-sm-6">
+                    {var $e = $form['birth_date']->getErrors()}
+                    <label n:name="birth_date" class="form-label">Date of Birth</label>
+                    <input n:name="birth_date" class="form-control{if $e} is-invalid{/if}">
+                    {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                </div>
+
+                <div class="col-12">
+                    {var $e = $form['street']->getErrors()}
+                    <label n:name="street" class="form-label">Street and House Number</label>
+                    <input n:name="street" class="form-control{if $e} is-invalid{/if}" placeholder="Dlouhá 12">
+                    {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                </div>
+
+                <div class="col-12">
+                    {var $e = $form['city']->getErrors()}
+                    <label n:name="city" class="form-label">City</label>
+                    <input n:name="city" class="form-control{if $e} is-invalid{/if}" placeholder="Praha">
+                    {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                </div>
+
+            </div>
+
+            <hr class="my-3">
+            <input n:name="submit" class="btn btn-primary btn-submit-mobile">
+
+            {/form}
+        </div>
+    </div>
+
+    {* ── Change password form ────────────────────────────────────────── *}
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-key me-2 text-muted"></i>Change Password
+        </div>
+        <div class="card-body">
+            {form changePasswordForm}
+
+            {foreach $form->getErrors() as $error}
+                <div class="alert alert-danger py-2 small">{$error}</div>
+            {/foreach}
+
+            <div class="row g-3">
+
+                <div class="col-12">
+                    {var $e = $form['current_password']->getErrors()}
+                    <label n:name="current_password" class="form-label fw-semibold">
+                        Current Password <span class="req">*</span>
+                    </label>
+                    <input n:name="current_password" class="form-control{if $e} is-invalid{/if}">
+                    {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                </div>
+
+                <div class="col-sm-6">
+                    {var $e = $form['new_password']->getErrors()}
+                    <label n:name="new_password" class="form-label fw-semibold">
+                        New Password <span class="req">*</span>
+                    </label>
+                    <input n:name="new_password" class="form-control{if $e} is-invalid{/if}">
+                    {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                    <div class="form-text">Minimum 8 characters.</div>
+                </div>
+
+                <div class="col-sm-6">
+                    {var $e = $form['new_password_confirm']->getErrors()}
+                    <label n:name="new_password_confirm" class="form-label fw-semibold">
+                        Confirm New Password <span class="req">*</span>
+                    </label>
+                    <input n:name="new_password_confirm" class="form-control{if $e} is-invalid{/if}">
+                    {if $e}<div class="invalid-feedback">{$e[0]}</div>{/if}
+                </div>
+
+            </div>
+
+            <hr class="my-3">
+            <input n:name="submit" class="btn btn-warning btn-submit-mobile">
+
+            {/form}
+        </div>
+    </div>
+
+</div>
+</div>
+
+</div>
+{/block}

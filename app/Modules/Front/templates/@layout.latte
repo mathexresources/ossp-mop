@@ -4,65 +4,89 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{ifset title}{$title} — {/ifset}OSSP MOP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+{* ── Top navigation bar ─────────────────────────────────────────────── *}
+<nav class="navbar navbar-expand-lg navbar-mop fixed-top py-0" style="height:56px;">
     <div class="container">
-        <a class="navbar-brand" href="{link :Front:Homepage:default}">OSSP MOP</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+
+        {* Brand *}
+        <a class="navbar-brand d-flex align-items-center gap-2" href="{link :Front:Homepage:default}">
+            <i class="bi bi-tools text-accent"></i>
+            OSSP MOP
+        </a>
+
+        {* Mobile toggle *}
+        <button class="navbar-toggler border-0" type="button"
+                data-bs-toggle="collapse" data-bs-target="#mainNav"
+                aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse" id="mainNav">
 
-            {* ── Left side: contextual navigation items ─────────────────── *}
+        <div class="collapse navbar-collapse" id="mainNav"
+             style="background:var(--mop-primary);">
+
+            {* ── Left: page links ─────────────────────────────────── *}
+            {var $pName = $presenter->getName()}
             <ul class="navbar-nav me-auto">
 
-                {* All visitors *}
                 <li class="nav-item">
-                    <a class="nav-link" href="{link :Front:Ticket:default}">Tickets</a>
+                    <a class="nav-link{if str_starts_with($pName, 'Front:Ticket')} active{/if}"
+                       href="{link :Front:Ticket:default}">
+                        <i class="bi bi-ticket-perforated me-1"></i>Tickets
+                    </a>
                 </li>
 
                 {if $user->isLoggedIn()}
-
-                    {* Employee, Support, Admin *}
                     {if $roleHelper->isEmployee()}
                         <li class="nav-item">
-                            <a class="nav-link" href="{link :Front:Item:default}">Items</a>
+                            <a class="nav-link{if str_starts_with($pName, 'Front:Item')} active{/if}"
+                               href="{link :Front:Item:default}">
+                                <i class="bi bi-box-seam me-1"></i>Items
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{link :Front:Ticket:create}">Create Ticket</a>
+                            <a class="nav-link{if $pName === 'Front:Ticket' && $presenter->getAction() === 'create'} active{/if}"
+                               href="{link :Front:Ticket:create}">
+                                <i class="bi bi-plus-circle me-1"></i>New Ticket
+                            </a>
                         </li>
                     {/if}
 
-                    {* Support and Admin *}
                     {if $roleHelper->isSupport()}
                         <li class="nav-item">
-                            <a class="nav-link" href="{link :Front:Support:default}">Support Tools</a>
+                            <a class="nav-link{if str_starts_with($pName, 'Front:Support')} active{/if}"
+                               href="{link :Front:Support:default}">
+                                <i class="bi bi-headset me-1"></i>Support
+                            </a>
                         </li>
                     {/if}
 
-                    {* Admin only *}
                     {if $roleHelper->isAdmin()}
                         <li class="nav-item">
-                            <a class="nav-link" href="{link :Admin:Dashboard:default}">Admin Panel</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{link :Admin:UserApproval:default}">User Management</a>
+                            <a class="nav-link" href="{link :Admin:Dashboard:default}">
+                                <i class="bi bi-shield-check me-1"></i>Admin
+                            </a>
                         </li>
                     {/if}
-
                 {/if}
+
             </ul>
 
-            {* ── Right side: notifications + identity / auth ─────────────── *}
-            <ul class="navbar-nav ms-auto align-items-center">
+            {* ── Right: notifications + user ────────────────────── *}
+            <ul class="navbar-nav ms-auto align-items-center gap-1">
+
                 {if $user->isLoggedIn()}
 
-                    {* ── Bell notification dropdown ──────────────────────── *}
-                    <li class="nav-item dropdown me-2">
+                    {* ── Bell dropdown ────────────────────────────── *}
+                    <li class="nav-item dropdown">
                         <a class="nav-link position-relative px-2"
                            href="#"
                            id="notificationDropdownToggle"
@@ -74,50 +98,92 @@
                             <span id="notificationBadge"
                                   class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger
                                          {if ($unreadNotificationCount ?? 0) === 0}d-none{/if}"
-                                  style="font-size:.65rem;">
+                                  style="font-size:.6rem;">
                                 {if ($unreadNotificationCount ?? 0) > 99}99+{else}{$unreadNotificationCount ?? 0}{/if}
                             </span>
                         </a>
-                        <div class="dropdown-menu dropdown-menu-end p-0" style="min-width:320px;max-width:380px;">
+                        <div class="dropdown-menu dropdown-menu-end p-0 shadow"
+                             style="min-width:320px;max-width:380px;">
                             <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
                                 <span class="fw-semibold small">Notifications</span>
                                 <button id="notificationMarkAllBtn"
-                                        class="btn btn-link btn-sm p-0 text-decoration-none
+                                        class="btn btn-link btn-sm p-0 text-decoration-none small
                                                {if ($unreadNotificationCount ?? 0) === 0}d-none{/if}"
                                         type="button">
-                                    Mark all as read
+                                    Mark all read
                                 </button>
                             </div>
-                            <ul id="notificationDropdownList" class="list-unstyled mb-0" style="max-height:340px;overflow-y:auto;">
+                            <ul id="notificationDropdownList" class="list-unstyled mb-0"
+                                style="max-height:320px;overflow-y:auto;">
                                 <li>
-                                    <span class="dropdown-item-text text-muted small py-2">Loading…</span>
+                                    <span class="dropdown-item-text text-muted small py-3 d-block text-center">
+                                        Loading&hellip;
+                                    </span>
                                 </li>
                             </ul>
                             <div class="border-top text-center py-2">
-                                <a class="small text-decoration-none" href="{link :Front:Notifications:default}">
-                                    View all notifications
+                                <a class="small text-decoration-none text-accent fw-semibold"
+                                   href="{link :Front:Notifications:default}">
+                                    View all notifications &rarr;
                                 </a>
                             </div>
                         </div>
                     </li>
 
-                    {* ── User identity dropdown ───────────────────────────── *}
+                    {* ── User avatar dropdown ─────────────────────── *}
                     {var $identity = $user->getIdentity()}
+                    {var $firstName = $identity?->getData()['first_name'] ?? '?'}
+                    {var $lastName  = $identity?->getData()['last_name']  ?? ''}
+                    {var $initials  = mb_strtoupper(mb_substr($firstName, 0, 1)) . mb_strtoupper(mb_substr($lastName, 0, 1))}
+                    {var $avClass   = 'av-' . mb_strtolower(mb_substr($firstName, 0, 1))}
+
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            {$identity?->getData()['first_name']} {$identity?->getData()['last_name']}
-                            <span class="badge bg-secondary ms-1" style="font-size:.65rem;">
-                                {$roleHelper->getRole()}
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 ps-2"
+                           href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="avatar avatar-sm {$avClass}">{$initials}</span>
+                            <span class="d-none d-lg-inline">
+                                {$firstName} {$lastName}
                             </span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li>
-                                <span class="dropdown-item-text small text-muted">
-                                    {$identity?->getData()['email']}
+                        <ul class="dropdown-menu dropdown-menu-end shadow py-1" style="min-width:200px;">
+                            <li class="px-3 py-2">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="avatar {$avClass}">{$initials}</span>
+                                    <div>
+                                        <div class="fw-semibold small lh-sm">
+                                            {$firstName} {$lastName}
+                                        </div>
+                                        <div class="text-muted" style="font-size:.7rem;">
+                                            {$identity?->getData()['email'] ?? ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="badge badge-role-{$roleHelper->getRole()} mt-1" style="font-size:.65rem;">
+                                    {$roleHelper->getRole()}
                                 </span>
                             </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{link :Front:Auth:logout}">Log Out</a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <a class="dropdown-item small py-2" href="{link :Front:Profile:edit}">
+                                    <i class="bi bi-person-gear me-2 text-muted"></i>My Profile
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item small py-2" href="{link :Front:Notifications:default}">
+                                    <i class="bi bi-bell me-2 text-muted"></i>Notifications
+                                    {if ($unreadNotificationCount ?? 0) > 0}
+                                        <span class="badge bg-danger ms-1" style="font-size:.6rem;">
+                                            {$unreadNotificationCount}
+                                        </span>
+                                    {/if}
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <a class="dropdown-item small py-2 text-danger" href="{link :Front:Auth:logout}">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Log Out
+                                </a>
+                            </li>
                         </ul>
                     </li>
 
@@ -126,35 +192,52 @@
                         <a class="nav-link" href="{link :Front:Auth:login}">Log In</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{link :Front:Auth:register}">Register</a>
+                        <a class="btn btn-sm ms-1 fw-semibold"
+                           style="background:var(--mop-accent);color:#fff;border-radius:.375rem;padding:.35rem .8rem;"
+                           href="{link :Front:Auth:register}">Register</a>
                     </li>
                 {/if}
-            </ul>
 
+            </ul>
         </div>
     </div>
 </nav>
 
-<main class="py-4">
-    <div class="container">
-        {foreach $flashes as $flash}
-            <div class="alert alert-{$flash->type} alert-dismissible fade show" role="alert">
-                {$flash->message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {/foreach}
-    </div>
+{* ── Page content ────────────────────────────────────────────────────── *}
+<main style="padding-top:56px;">
+    <div class="py-4">
 
-    {include content}
+        {* Flash messages *}
+        <div class="container">
+            {foreach $flashes as $flash}
+                {var $flashIcon = match($flash->type) {
+                    'success' => 'bi-check-circle-fill',
+                    'danger'  => 'bi-x-circle-fill',
+                    'warning' => 'bi-exclamation-triangle-fill',
+                    default   => 'bi-info-circle-fill',
+                }}
+                <div class="alert alert-{$flash->type} alert-dismissible alert-auto-dismiss fade show d-flex align-items-center gap-2"
+                     role="alert">
+                    <i class="bi {$flashIcon} flex-shrink-0"></i>
+                    <span>{$flash->message}</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            {/foreach}
+        </div>
+
+        {include content}
+
+    </div>
 </main>
 
-<footer class="bg-light border-top py-3 mt-auto">
+<footer class="bg-white border-top py-3 mt-auto">
     <div class="container text-center text-muted small">
-        &copy; {date('Y')} OSSP MOP
+        &copy; {date('Y')} OSSP MOP &mdash; Maintenance Operations Portal
     </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/app.js"></script>
 {if $user->isLoggedIn()}
     <script src="/js/notifications.js"></script>
 {/if}

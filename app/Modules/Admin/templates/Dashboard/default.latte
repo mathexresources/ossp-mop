@@ -1,110 +1,91 @@
 {block content}
-<h1 class="h3 mb-4">Admin Dashboard</h1>
 
-{* ── Pending approvals alert ──────────────────────────────────── *}
-{if $pendingCount > 0}
-<div class="alert alert-warning d-flex align-items-center justify-content-between mb-4">
-    <div>
-        <strong>{$pendingCount} user{if $pendingCount > 1}s{/if} awaiting approval.</strong>
-        Review and approve or reject new registrations.
-    </div>
-    <a href="{link :Admin:UserApproval:default}" class="btn btn-warning btn-sm ms-3 text-nowrap">
-        Review Now
-    </a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Dashboard</h1>
+    <span class="text-muted small">{date('l, d F Y')}</span>
 </div>
+
+{* ── Pending approvals alert ─────────────────────────────────────────── *}
+{if $pendingCount > 0}
+    <div class="alert alert-warning d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-person-exclamation fs-5"></i>
+            <strong>{$pendingCount} user{if $pendingCount > 1}s{/if} awaiting approval.</strong>
+        </div>
+        <a href="{link :Admin:UserApproval:default}" class="btn btn-warning btn-sm text-nowrap ms-3">
+            Review Now
+        </a>
+    </div>
 {/if}
 
-<div class="row g-4 mb-4">
+{* ── Stat cards ──────────────────────────────────────────────────────── *}
+<div class="row g-3 mb-4">
 
-    {* ── Users card ────────────────────────────────────────────── *}
-    <div class="col-lg-6">
-        <div class="card h-100 shadow-sm">
-            <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-                <span>Users</span>
-                <span class="badge bg-secondary">{$totalUsers} total</span>
-            </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card stat-primary h-100">
             <div class="card-body">
-                <table class="table table-sm mb-0">
-                    <tbody>
-                        <tr>
-                            <td>
-                                <span class="badge bg-danger me-1">Admin</span>
-                            </td>
-                            <td class="fw-bold">{$usersByRole['admin']}</td>
-                            <td class="text-muted small">
-                                <span class="badge bg-warning text-dark me-1">Pending</span>
-                                {$usersByStatus['pending']}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <span class="badge bg-info me-1">Support</span>
-                            </td>
-                            <td class="fw-bold">{$usersByRole['support']}</td>
-                            <td class="text-muted small">
-                                <span class="badge bg-success me-1">Approved</span>
-                                {$usersByStatus['approved']}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <span class="badge bg-primary me-1">Employee</span>
-                            </td>
-                            <td class="fw-bold">{$usersByRole['employee']}</td>
-                            <td class="text-muted small">
-                                <span class="badge bg-danger me-1">Rejected</span>
-                                {$usersByStatus['rejected']}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <span class="badge bg-secondary me-1">Guest</span>
-                            </td>
-                            <td class="fw-bold">{$usersByRole['guest']}</td>
-                            <td></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="stat-label mb-2"><i class="bi bi-people me-1"></i>Total Users</div>
+                <div class="stat-value">{$totalUsers}</div>
+                <div class="stat-sub mt-1">
+                    {$usersByRole['admin']} admin
+                    &middot; {$usersByRole['support']} support
+                    &middot; {$usersByRole['employee']} employee
+                </div>
             </div>
             <div class="card-footer">
                 <a href="{link :Admin:User:default}" class="btn btn-sm btn-outline-primary">
                     Manage Users
                 </a>
-                <a href="{link :Admin:User:create}" class="btn btn-sm btn-outline-success ms-1">
-                    + Create User
-                </a>
             </div>
         </div>
     </div>
 
-    {* ── Tickets card ───────────────────────────────────────────── *}
-    <div class="col-lg-6">
-        <div class="card h-100 shadow-sm">
-            <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-                <span>Tickets</span>
-                <span class="badge bg-secondary">{$totalTickets} total</span>
-            </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card stat-danger h-100">
             <div class="card-body">
-                <table class="table table-sm mb-0">
-                    <tbody>
-                        <tr>
-                            <td><span class="badge bg-primary me-1">Open</span></td>
-                            <td class="fw-bold">{$ticketsByStatus['open']}</td>
-                        </tr>
-                        <tr>
-                            <td><span class="badge bg-warning text-dark me-1">In Progress</span></td>
-                            <td class="fw-bold">{$ticketsByStatus['in_progress']}</td>
-                        </tr>
-                        <tr>
-                            <td><span class="badge bg-success me-1">Closed</span></td>
-                            <td class="fw-bold">{$ticketsByStatus['closed']}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="stat-label mb-2"><i class="bi bi-ticket-perforated me-1"></i>Open Tickets</div>
+                <div class="stat-value">{$ticketsByStatus['open']}</div>
+                <div class="stat-sub mt-1">
+                    {$ticketsByStatus['in_progress']} in progress
+                    &middot; {$totalTickets} total
+                </div>
             </div>
             <div class="card-footer">
-                <a href="{link :Front:Ticket:default}" class="btn btn-sm btn-outline-secondary">
-                    View All Tickets
+                <a href="{link :Front:Ticket:default, status => 'open'}" class="btn btn-sm btn-outline-danger">
+                    View Open
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card {if $pendingCount > 0}stat-warning{else}stat-success{/if} h-100">
+            <div class="card-body">
+                <div class="stat-label mb-2"><i class="bi bi-person-check me-1"></i>Pending Approvals</div>
+                <div class="stat-value">{$pendingCount}</div>
+                <div class="stat-sub mt-1">
+                    {$usersByStatus['approved']} approved
+                    &middot; {$usersByStatus['rejected']} rejected
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{link :Admin:UserApproval:default}" class="btn btn-sm btn-outline-secondary">
+                    Review
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card stat-accent h-100">
+            <div class="card-body">
+                <div class="stat-label mb-2"><i class="bi bi-box-seam me-1"></i>Items in System</div>
+                <div class="stat-value">{$totalItems}</div>
+                <div class="stat-sub mt-1">&nbsp;</div>
+            </div>
+            <div class="card-footer">
+                <a href="{link :Admin:Item:default}" class="btn btn-sm btn-outline-secondary">
+                    Manage Items
                 </a>
             </div>
         </div>
@@ -112,16 +93,120 @@
 
 </div>
 
-{* ── Quick actions ───────────────────────────────────────────────── *}
-<div class="card shadow-sm">
-    <div class="card-header fw-semibold">Quick Actions</div>
-    <div class="card-body d-flex flex-wrap gap-2">
-        <a href="{link :Admin:User:create}" class="btn btn-success btn-sm">+ Create User</a>
-        <a href="{link :Admin:UserApproval:default}" class="btn btn-warning btn-sm">
-            Pending Approvals
-            {if $pendingCount > 0}<span class="badge bg-dark ms-1">{$pendingCount}</span>{/if}
-        </a>
-        <a href="{link :Front:Ticket:default}" class="btn btn-outline-primary btn-sm">View Tickets</a>
+{* ── Chart + Activity ────────────────────────────────────────────────── *}
+<div class="row g-3">
+
+    {* Ticket status chart *}
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-pie-chart me-2 text-muted"></i>Ticket Status Breakdown
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center" style="min-height:230px;">
+                {if $totalTickets === 0}
+                    <div class="empty-state">
+                        <i class="bi bi-ticket empty-icon"></i>
+                        <p>No tickets yet.</p>
+                    </div>
+                {else}
+                    <div style="max-width:220px;width:100%;">
+                        <canvas id="ticketChart" height="220"></canvas>
+                    </div>
+                {/if}
+            </div>
+            {if $totalTickets > 0}
+                <div class="card-footer d-flex justify-content-center gap-4 small text-muted">
+                    <span><span class="badge badge-status-open me-1">Open</span>{$ticketsByStatus['open']}</span>
+                    <span><span class="badge badge-status-in_progress me-1">In Progress</span>{$ticketsByStatus['in_progress']}</span>
+                    <span><span class="badge badge-status-closed me-1">Closed</span>{$ticketsByStatus['closed']}</span>
+                </div>
+            {/if}
+        </div>
     </div>
+
+    {* Recent activity *}
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history me-2 text-muted"></i>Recent Tickets</span>
+                <a href="{link :Front:Ticket:default}" class="btn btn-sm btn-outline-secondary">
+                    View All
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {if count($recentTickets) === 0}
+                    <div class="empty-state">
+                        <i class="bi bi-ticket empty-icon"></i>
+                        <p>No tickets yet.</p>
+                    </div>
+                {else}
+                    <ul class="activity-feed px-3">
+                        {foreach $recentTickets as $rt}
+                            <li>
+                                <span class="activity-dot mt-1"></span>
+                                <div class="flex-grow-1 min-width-0">
+                                    <a href="{link :Front:Ticket:detail $rt->id}"
+                                       class="fw-semibold text-decoration-none text-dark small d-block text-truncate">
+                                        #{$rt->id} {$rt->title}
+                                    </a>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="badge badge-status-{$rt->status}" style="font-size:.65rem;">
+                                            {$rt->status}
+                                        </span>
+                                        <span class="text-muted" style="font-size:.75rem;">
+                                            {$rt->first_name} {$rt->last_name}
+                                            &middot; {$rt->created_at|date:'d M, H:i'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </li>
+                        {/foreach}
+                    </ul>
+                {/if}
+            </div>
+        </div>
+    </div>
+
 </div>
+
+{block scripts}
+{if $totalTickets > 0}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    var ctx = document.getElementById('ticketChart');
+    if (!ctx) return;
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Open', 'In Progress', 'Closed'],
+            datasets: [{
+                data: [
+                    {$ticketsByStatus['open']},
+                    {$ticketsByStatus['in_progress']},
+                    {$ticketsByStatus['closed']}
+                ],
+                backgroundColor: ['#e63946', '#f4a261', '#2a9d5c'],
+                borderWidth: 2,
+                borderColor: '#fff',
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            cutout: '65%',
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: {
+                    label: function(ctx) {
+                        return ' ' + ctx.label + ': ' + ctx.parsed;
+                    }
+                }}
+            }
+        }
+    });
+})();
+</script>
+{/if}
+{/block}
+
 {/block}

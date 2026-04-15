@@ -170,6 +170,54 @@ final class UserFacade
     }
 
     // ------------------------------------------------------------------
+    //  Self-service profile update
+    // ------------------------------------------------------------------
+
+    /**
+     * Updates only the editable profile fields (no role / status changes).
+     * Safe to call from a user's own profile page.
+     *
+     * @param  array{
+     *     first_name: string,
+     *     last_name:  string,
+     *     phone?:     string,
+     *     birth_date?: string,
+     *     street?:    string,
+     *     city?:      string,
+     * } $data
+     */
+    public function updateProfile(int $userId, array $data): void
+    {
+        $this->userRepository->update($userId, [
+            'first_name' => $data['first_name'],
+            'last_name'  => $data['last_name'],
+            'phone'      => $this->nullable($data['phone'] ?? ''),
+            'birth_date' => $this->nullable($data['birth_date'] ?? ''),
+            'street'     => $this->nullable($data['street'] ?? ''),
+            'city'       => $this->nullable($data['city'] ?? ''),
+        ]);
+    }
+
+    /**
+     * Allows a user to change their own password.
+     * Verifies the current password before updating.
+     *
+     * @throws \RuntimeException if the current password is incorrect
+     */
+    public function changeOwnPassword(int $userId, string $currentPassword, string $newPassword): void
+    {
+        $user = $this->requireUser($userId);
+
+        if (!password_verify($currentPassword, (string) $user->password_hash)) {
+            throw new \RuntimeException('Current password is incorrect.');
+        }
+
+        $this->userRepository->update($userId, [
+            'password_hash' => password_hash($newPassword, PASSWORD_BCRYPT),
+        ]);
+    }
+
+    // ------------------------------------------------------------------
     //  Soft deletion
     // ------------------------------------------------------------------
 

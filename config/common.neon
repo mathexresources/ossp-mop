@@ -6,6 +6,7 @@ parameters:
     appName: OSSP MOP
 
 application:
+    errorPresenter: Front:Error
     mapping:
         *: App\Modules\*\Presenters\*Presenter
 

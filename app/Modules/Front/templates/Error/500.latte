@@ -1,11 +1,26 @@
 {block content}
 <div class="container">
-    <div class="row justify-content-center mt-5">
-        <div class="col-md-6 text-center">
-            <h1 class="display-1 text-muted">500</h1>
-            <h2>Server Error</h2>
-            <p class="text-muted">Something went wrong on our end.</p>
-            <a href="{link :Front:Homepage:default}" class="btn btn-primary">Go Home</a>
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-5 text-center mt-5">
+            <div class="card py-5 px-4">
+                <div class="card-body">
+                    <div class="display-1 fw-bold mb-0" style="color:var(--mop-warning);opacity:.3;line-height:1;">500</div>
+                    <i class="bi bi-exclamation-octagon" style="font-size:3rem;color:var(--mop-warning);opacity:.6;"></i>
+                    <h2 class="h4 mt-3 mb-2">Something Went Wrong</h2>
+                    <p class="text-muted mb-4">
+                        An unexpected error occurred on our end.
+                        Our team has been notified. Please try again in a moment.
+                    </p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="{link :Front:Homepage:default}" class="btn btn-primary">
+                            <i class="bi bi-house me-1"></i>Go Home
+                        </a>
+                        <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Go Back
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
