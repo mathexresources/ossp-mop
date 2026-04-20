@@ -105,7 +105,7 @@ final class UserPresenter extends BasePresenter
             ->setRequired('Email address is required.')
             ->setMaxLength(180)
             ->addRule(
-                fn($input) => !$this->userRepository->emailExistsExcept($input->getValue()),
+                fn ($input) => !$this->userRepository->emailExistsExcept($input->getValue()),
                 'This email address is already in use.',
             );
 
@@ -195,7 +195,7 @@ final class UserPresenter extends BasePresenter
             ->setRequired('Email address is required.')
             ->setMaxLength(180)
             ->addRule(
-                fn($input) => !$this->userRepository->emailExistsExcept(
+                fn ($input) => !$this->userRepository->emailExistsExcept(
                     $input->getValue(),
                     $this->targetUser?->id,
                 ),

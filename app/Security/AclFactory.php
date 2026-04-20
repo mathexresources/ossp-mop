@@ -32,8 +32,8 @@ final class AclFactory
         // ------------------------------------------------------------------
         $acl->addRole('guest');
         $acl->addRole('employee', 'guest');    // employee ⊃ guest
-        $acl->addRole('support',  'employee'); // support  ⊃ employee ⊃ guest
-        $acl->addRole('admin',    'support');  // admin    ⊃ support  ⊃ … ⊃ guest
+        $acl->addRole('support', 'employee'); // support  ⊃ employee ⊃ guest
+        $acl->addRole('admin', 'support');  // admin    ⊃ support  ⊃ … ⊃ guest
 
         // ------------------------------------------------------------------
         //  Resources
@@ -54,10 +54,10 @@ final class AclFactory
         // ------------------------------------------------------------------
 
         // ticket ─────────────────────────────────────────────────────────
-        $acl->allow('guest',    'ticket', 'view');
+        $acl->allow('guest', 'ticket', 'view');
         $acl->allow('employee', 'ticket', ['create', 'upload', 'edit']);
-        $acl->allow('support',  'ticket', 'update-status');
-        $acl->allow('admin',    'ticket', ['assign', 'delete']);
+        $acl->allow('support', 'ticket', 'update-status');
+        $acl->allow('admin', 'ticket', ['assign', 'delete']);
 
         // service_history ────────────────────────────────────────────────
         $acl->allow('support', 'service_history', 'add');

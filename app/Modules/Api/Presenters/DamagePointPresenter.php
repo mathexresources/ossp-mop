@@ -62,10 +62,10 @@ final class DamagePointPresenter extends BasePresenter
             $this->sendJsonError('Invalid JSON body.');
         }
 
-        $ticketId    = isset($data['ticket_id'])    ? (int)   $data['ticket_id']    : 0;
-        $x           = isset($data['position_x'])   ? (float) $data['position_x']   : -1.0;
-        $y           = isset($data['position_y'])   ? (float) $data['position_y']   : -1.0;
-        $description = isset($data['description'])  ? trim((string) $data['description']) : '';
+        $ticketId    = isset($data['ticket_id']) ? (int)   $data['ticket_id'] : 0;
+        $x           = isset($data['position_x']) ? (float) $data['position_x'] : -1.0;
+        $y           = isset($data['position_y']) ? (float) $data['position_y'] : -1.0;
+        $description = isset($data['description']) ? trim((string) $data['description']) : '';
 
         if ($ticketId <= 0) {
             $this->sendJsonError('Invalid ticket_id.');

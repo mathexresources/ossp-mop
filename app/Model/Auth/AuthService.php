@@ -46,7 +46,7 @@ final class AuthService implements Authenticator
         }
 
         return match ((string) $row->status) {
-            'pending'  => throw new AuthenticationException('pending',  self::NOT_APPROVED),
+            'pending'  => throw new AuthenticationException('pending', self::NOT_APPROVED),
             'rejected' => throw new AuthenticationException('rejected', self::NOT_APPROVED),
             default    => new SimpleIdentity(
                 (int) $row->id,

@@ -32,7 +32,7 @@ final class AuthPresenter extends BasePresenter
 
     protected function createComponentLoginForm(): Form
     {
-        $form = new Form;
+        $form = new Form();
         $form->addProtection();
 
         $form->addEmail('email', 'Email address')
@@ -85,7 +85,7 @@ final class AuthPresenter extends BasePresenter
 
     protected function createComponentRegisterForm(): Form
     {
-        $form = new Form;
+        $form = new Form();
         $form->addProtection();
 
         $form->addText('first_name', 'First name')

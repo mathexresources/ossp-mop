@@ -10,7 +10,7 @@ final class RouterFactory
 {
     public static function createRouter(): RouteList
     {
-        $router = new RouteList;
+        $router = new RouteList();
 
         // Admin must be registered before the Front catch-all.
         $admin = new RouteList('Admin');
