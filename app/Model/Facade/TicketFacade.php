@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Model\Facade;
 
 use App\Model\Database\DatabaseService;
+use App\Model\Database\RowType;
 use App\Model\Mail\MailService;
 use App\Model\Repository\TicketImageRepository;
 use App\Model\Repository\TicketRepository;
@@ -12,12 +13,6 @@ use App\Model\Repository\UserRepository;
 use Nette\Database\Table\ActiveRow;
 use Nette\Http\FileUpload;
 
-/**
- * Business logic for tickets and ticket images.
- *
- * Upload path (inside Docker): /var/www/html/www/uploads/tickets/{ticket_id}/
- * Web-accessible path: /uploads/tickets/{ticket_id}/{filename}
- */
 final class TicketFacade
 {
     public function __construct(
@@ -30,14 +25,7 @@ final class TicketFacade
     ) {
     }
 
-    // ==================================================================
-    //  Ticket CRUD
-    // ==================================================================
-
     /**
-     * Creates a new open ticket, notifies all support users via in-app
-     * notification and email.
-     *
      * @param array{title: string, description: string, item_id: int|string} $data
      */
     public function create(array $data, int $createdBy): ActiveRow
@@ -56,27 +44,27 @@ final class TicketFacade
 
         $creator = $this->userRepository->findById($createdBy);
         $creatorName = $creator
-            ? "{$creator->first_name} {$creator->last_name}"
+            ? RowType::string($creator->first_name) . ' ' . RowType::string($creator->last_name)
             : "User #{$createdBy}";
 
-        $ticketUrl = '/ticket/detail/' . (int) $ticket->id;
+        $ticketId = RowType::int($ticket->id);
+        $ticketTitle = RowType::string($ticket->title);
+        $ticketUrl = '/ticket/detail/' . $ticketId;
 
-        // In-app notifications for support and admin roles.
         $this->notificationFacade->notifyRole(
             'support',
             NotificationFacade::TYPE_TICKET_CREATED,
-            "New ticket #{$ticket->id} \"{$ticket->title}\" was created by {$creatorName}.",
+            "New ticket #{$ticketId} \"{$ticketTitle}\" was created by {$creatorName}.",
             $ticketUrl,
         );
 
         $this->notificationFacade->notifyRole(
             'admin',
             NotificationFacade::TYPE_TICKET_CREATED,
-            "New ticket #{$ticket->id} \"{$ticket->title}\" was created by {$creatorName}.",
+            "New ticket #{$ticketId} \"{$ticketTitle}\" was created by {$creatorName}.",
             $ticketUrl,
         );
 
-        // Email all approved support users.
         $supportUsers = $this->userRepository->findByRole('support')
             ->where('status', 'approved')
             ->fetchAll();
@@ -86,22 +74,16 @@ final class TicketFacade
         return $ticket;
     }
 
-    /**
-     * Updates title and description of a ticket.
-     */
+    /** @param array<string, mixed> $data */
     public function update(int $id, array $data): void
     {
         $this->ticketRepository->update($id, [
-            'title'       => trim($data['title']),
-            'description' => trim($data['description']),
+            'title'       => trim(RowType::string($data['title'])),
+            'description' => trim(RowType::string($data['description'])),
             'updated_at'  => new \DateTimeImmutable(),
         ]);
     }
 
-    /**
-     * Assigns a ticket to a support user; notifies the assignee via in-app
-     * notification and email.
-     */
     public function assign(int $ticketId, int $assignedTo): void
     {
         $ticket = $this->ticketRepository->findById($ticketId);
@@ -111,9 +93,8 @@ final class TicketFacade
             'updated_at'  => new \DateTimeImmutable(),
         ]);
 
-        $title = $ticket ? "\"{$ticket->title}\"" : "#{$ticketId}";
+        $title = $ticket ? '"' . RowType::string($ticket->title) . '"' : "#{$ticketId}";
 
-        // In-app notification.
         $this->notificationFacade->notify(
             $assignedTo,
             NotificationFacade::TYPE_TICKET_ASSIGNED,
@@ -121,7 +102,6 @@ final class TicketFacade
             '/ticket/detail/' . $ticketId,
         );
 
-        // Email the assignee.
         if ($ticket !== null) {
             $assignee = $this->userRepository->findById($assignedTo);
             if ($assignee !== null) {
@@ -130,16 +110,7 @@ final class TicketFacade
         }
     }
 
-    /**
-     * Changes ticket status, enforcing valid transitions.
-     *
-     * Rules:
-     *   - Closed tickets can only be reopened by admins.
-     *   - Notifies the ticket creator on every status change (in-app + email).
-     *
-     * @param int  $changedBy  User ID of the person making the change (0 = unknown)
-     * @throws \RuntimeException on invalid transition or unknown ticket
-     */
+    /** @throws \RuntimeException on invalid transition or unknown ticket */
     public function changeStatus(int $id, string $newStatus, bool $isAdmin, int $changedBy = 0): void
     {
         $ticket = $this->ticketRepository->findById($id);
@@ -152,11 +123,11 @@ final class TicketFacade
             throw new \RuntimeException('Invalid status value.');
         }
 
-        if ($ticket->status === 'closed' && !$isAdmin) {
+        if (RowType::string($ticket->status) === 'closed' && !$isAdmin) {
             throw new \RuntimeException('Only administrators can reopen a closed ticket.');
         }
 
-        $oldStatus = (string) $ticket->status;
+        $oldStatus = RowType::string($ticket->status);
 
         $this->ticketRepository->update($id, [
             'status'     => $newStatus,
@@ -167,21 +138,20 @@ final class TicketFacade
             'open'        => 'Open',
             'in_progress' => 'In Progress',
             'closed'      => 'Closed',
-            default       => $newStatus,
         };
 
-        // In-app notification to the ticket creator.
+        $ticketTitle = RowType::string($ticket->title);
+        $createdBy = RowType::int($ticket->created_by);
+
         $this->notificationFacade->notify(
-            (int) $ticket->created_by,
+            $createdBy,
             NotificationFacade::TYPE_TICKET_STATUS_CHANGED,
-            "Your ticket #{$id} \"{$ticket->title}\" status has changed to {$label}.",
+            "Your ticket #{$id} \"{$ticketTitle}\" status has changed to {$label}.",
             '/ticket/detail/' . $id,
         );
 
-        // Email the ticket creator.
-        $creator = $this->userRepository->findById((int) $ticket->created_by);
+        $creator = $this->userRepository->findById($createdBy);
         if ($creator !== null) {
-            // Re-fetch ticket with new status for the email template.
             $updatedTicket = $this->ticketRepository->findById($id);
             $this->mailService->sendTicketStatusChanged(
                 $updatedTicket ?? $ticket,
@@ -192,9 +162,6 @@ final class TicketFacade
         }
     }
 
-    /**
-     * Soft-deletes a ticket and cascades to its images and damage points.
-     */
     public function softDelete(int $id): void
     {
         $now = new \DateTimeImmutable();
@@ -212,18 +179,7 @@ final class TicketFacade
             ->update(['deleted_at' => $now]);
     }
 
-    // ==================================================================
-    //  Image management
-    // ==================================================================
-
-    /**
-     * Validates and saves a single uploaded image for a ticket.
-     * Notifies the assigned support user (if any).
-     *
-     * Allowed types: jpg, jpeg, png  /  Max size: 5 MB
-     *
-     * @throws \RuntimeException on validation failure or write error
-     */
+    /** @throws \RuntimeException on validation failure or write error */
     public function addImage(int $ticketId, FileUpload $file): ActiveRow
     {
         if (!$file->isOk()) {
@@ -257,25 +213,23 @@ final class TicketFacade
             'path'      => 'uploads/tickets/' . $ticketId . '/' . $filename,
         ]);
 
-        // Notify assigned support user (in-app only — no email for image uploads).
         $ticket = $this->ticketRepository->findById($ticketId);
-        if ($ticket && $ticket->assigned_to) {
-            $this->notificationFacade->notify(
-                (int) $ticket->assigned_to,
-                NotificationFacade::TYPE_IMAGE_ADDED,
-                "A new image was added to ticket #{$ticketId} \"{$ticket->title}\".",
-                '/ticket/detail/' . $ticketId,
-            );
+        if ($ticket !== null) {
+            $assignedId = RowType::nullableInt($ticket->assigned_to);
+            if ($assignedId !== null) {
+                $this->notificationFacade->notify(
+                    $assignedId,
+                    NotificationFacade::TYPE_IMAGE_ADDED,
+                    "A new image was added to ticket #{$ticketId} \"" . RowType::string($ticket->title) . '".',
+                    '/ticket/detail/' . $ticketId,
+                );
+            }
         }
 
         return $image;
     }
 
-    /**
-     * Soft-deletes a ticket image record.
-     *
-     * @throws \RuntimeException when the image is not found
-     */
+    /** @throws \RuntimeException when the image is not found */
     public function deleteImage(int $imageId): void
     {
         $image = $this->ticketImageRepository->findById($imageId);
@@ -286,15 +240,6 @@ final class TicketFacade
         $this->ticketImageRepository->softDelete($imageId);
     }
 
-    // ==================================================================
-    //  Helpers
-    // ==================================================================
-
-    /**
-     * Absolute path to the upload directory for a ticket (no trailing slash).
-     *
-     * __DIR__ = …/app/Model/Facade  →  dirname 3 levels up = project root
-     */
     private function uploadDir(int $ticketId): string
     {
         return dirname(__DIR__, 3) . '/www/uploads/tickets/' . $ticketId;

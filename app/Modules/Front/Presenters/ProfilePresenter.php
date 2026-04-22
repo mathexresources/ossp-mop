@@ -5,16 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Front\Presenters;
 
 use App\Core\SecuredPresenter;
+use App\Model\Database\RowType;
 use App\Model\Facade\UserFacade;
 use App\Model\Repository\UserRepository;
 use Nette\Application\UI\Form;
 
-/**
- * Allows any approved user to view and edit their own profile.
- *
- * Actions:
- *   edit — profile form + change-password form
- */
 final class ProfilePresenter extends SecuredPresenter
 {
     protected ?string $requiredRole = null;
@@ -48,8 +43,8 @@ final class ProfilePresenter extends SecuredPresenter
         $this->template->title    = 'My Profile';
         $this->template->profile  = $user;
         $this->template->initials = mb_strtoupper(
-            mb_substr((string) $user->first_name, 0, 1) .
-            mb_substr((string) $user->last_name, 0, 1),
+            mb_substr(RowType::string($user->first_name), 0, 1) .
+            mb_substr(RowType::string($user->last_name), 0, 1),
         );
 
         $this['profileForm']->setDefaults([
@@ -96,12 +91,20 @@ final class ProfilePresenter extends SecuredPresenter
         return $form;
     }
 
-    public function profileFormSucceeded(Form $form, \stdClass $values): void
+    public function profileFormSucceeded(Form $form, mixed $values): void
     {
         $userId = (int) $this->getUser()->getId();
+        $data   = $form->getValues(true);
 
         try {
-            $this->userFacade->updateProfile($userId, (array) $values);
+            $this->userFacade->updateProfile($userId, [
+                'first_name' => RowType::string($data['first_name']),
+                'last_name'  => RowType::string($data['last_name']),
+                'phone'      => is_string($data['phone'] ?? null) ? $data['phone'] : '',
+                'birth_date' => is_string($data['birth_date'] ?? null) ? $data['birth_date'] : '',
+                'street'     => is_string($data['street'] ?? null) ? $data['street'] : '',
+                'city'       => is_string($data['city'] ?? null) ? $data['city'] : '',
+            ]);
             $this->flashMessage('Profile updated successfully.', 'success');
         } catch (\Throwable $e) {
             $this->flashMessage('Failed to update profile: ' . $e->getMessage(), 'danger');
@@ -142,15 +145,23 @@ final class ProfilePresenter extends SecuredPresenter
         return $form;
     }
 
-    public function changePasswordFormSucceeded(Form $form, \stdClass $values): void
+    public function changePasswordFormSucceeded(Form $form, mixed $values): void
     {
-        $userId = (int) $this->getUser()->getId();
+        $userId  = (int) $this->getUser()->getId();
+        $data    = $form->getValues(true);
+        $current = RowType::string($data['current_password']);
+        $new     = RowType::string($data['new_password']);
 
         try {
-            $this->userFacade->changeOwnPassword($userId, $values->current_password, $values->new_password);
+            $this->userFacade->changeOwnPassword($userId, $current, $new);
             $this->flashMessage('Password changed successfully.', 'success');
         } catch (\RuntimeException $e) {
-            $form['current_password']->addError($e->getMessage());
+            $pwField = $form->getComponent('current_password');
+            if ($pwField instanceof \Nette\Forms\Controls\BaseControl) {
+                $pwField->addError($e->getMessage());
+            } else {
+                $form->addError($e->getMessage());
+            }
             return;
         } catch (\Throwable $e) {
             $this->flashMessage('Failed to change password: ' . $e->getMessage(), 'danger');

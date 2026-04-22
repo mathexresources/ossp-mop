@@ -15,9 +15,6 @@ final class TicketImageRepository extends Repository
         return 'ticket_images';
     }
 
-    /**
-     * Overrides base findById to exclude soft-deleted images.
-     */
     public function findById(int $id): ?ActiveRow
     {
         $row = $this->selection()
@@ -28,9 +25,7 @@ final class TicketImageRepository extends Repository
         return $row instanceof ActiveRow ? $row : null;
     }
 
-    /**
-     * Returns non-deleted images for a ticket, ordered by id ascending.
-     */
+    /** @return Selection<ActiveRow> */
     public function findByTicket(int $ticketId): Selection
     {
         return $this->selection()
@@ -39,9 +34,6 @@ final class TicketImageRepository extends Repository
             ->order('id ASC');
     }
 
-    /**
-     * Soft-deletes an image. Returns number of affected rows.
-     */
     public function softDelete(int $id): int
     {
         return $this->selection()

@@ -6,13 +6,6 @@ namespace App\Modules\Admin\Presenters;
 
 use App\Model\Database\DatabaseService;
 
-/**
- * Admin dashboard — overview of system-wide statistics.
- *
- * UserRepository is available via $this->userRepository, injected by
- * Admin\BasePresenter.  Only DatabaseService needs an additional inject
- * here for the raw ticket-count query.
- */
 final class DashboardPresenter extends BasePresenter
 {
     private DatabaseService $db;
@@ -33,10 +26,12 @@ final class DashboardPresenter extends BasePresenter
         $this->template->totalUsers    = array_sum($this->userRepository->countByRole());
 
         // ── Ticket statistics ────────────────────────────────────────
+        /** @var array<string, int> $ticketRows */
         $ticketRows = $this->db->query(
             'SELECT status, COUNT(*) AS cnt FROM tickets WHERE deleted_at IS NULL GROUP BY status',
         )->fetchPairs('status', 'cnt');
 
+        /** @var array<string, int> $ticketsByStatus */
         $ticketsByStatus = array_merge(
             ['open' => 0, 'in_progress' => 0, 'closed' => 0],
             $ticketRows,
@@ -46,9 +41,8 @@ final class DashboardPresenter extends BasePresenter
         $this->template->totalTickets    = array_sum($ticketsByStatus);
 
         // ── Item statistics ──────────────────────────────────────────
-        $this->template->totalItems = (int) $this->db->query(
-            'SELECT COUNT(*) FROM items',
-        )->fetchField();
+        $totalItemsRaw = $this->db->query('SELECT COUNT(*) FROM items')->fetchField();
+        $this->template->totalItems = is_numeric($totalItemsRaw) ? (int) $totalItemsRaw : 0;
 
         // ── Recent activity: last 5 tickets ─────────────────────────
         $this->template->recentTickets = $this->db->query(

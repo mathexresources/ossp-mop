@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Model\Facade;
 
+use App\Model\Database\RowType;
 use App\Model\Repository\NotificationRepository;
 use App\Model\Repository\UserRepository;
 
@@ -83,7 +84,7 @@ final class NotificationFacade
     {
         $ids = [];
         foreach ($this->userRepository->findByRole($role) as $user) {
-            $ids[] = (int) $user->id;
+            $ids[] = RowType::int($user->id);
         }
         $this->notifyMany($ids, $type, $message, $linkUrl);
     }

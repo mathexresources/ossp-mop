@@ -4,42 +4,16 @@ declare(strict_types=1);
 
 namespace App\Modules\Admin\Presenters;
 
+use App\Model\Database\RowType;
 use App\Model\Facade\UserFacade;
 use Nette\Application\UI\Form;
 use Nette\Database\Table\ActiveRow;
 use Nette\Utils\Paginator;
 
-/**
- * Full user-management presenter for the Admin module.
- *
- * UserRepository is provided by Admin\BasePresenter via injectUserRepository().
- * Only UserFacade is injected here.
- *
- * Actions:
- *   default   — paginated, filterable user list
- *   create    — admin creates an approved user directly
- *   edit      — edit profile, role, and status
- *   password  — set a new password for any user
- *   delete    — soft-delete with confirmation
- *
- * Pending-user approval is handled by UserApprovalPresenter.
- * Pending users are highlighted in the list with direct links to
- * the approval flow.
- *
- * Self-protection rules (enforced before any write):
- *   - Admin cannot delete their own account.
- *   - Admin cannot demote their own role away from 'admin'.
- *   - Admin cannot change their own status away from 'approved'.
- */
 final class UserPresenter extends BasePresenter
 {
     private const ITEMS_PER_PAGE = 15;
 
-    /**
-     * The user record being acted on (edit / password / delete).
-     * Set by action*() methods before form components are created,
-     * so handlers can use it without relying on a tamperable hidden field.
-     */
     private ?ActiveRow $targetUser = null;
 
     private UserFacade $userFacade;
@@ -55,13 +29,17 @@ final class UserPresenter extends BasePresenter
 
     public function renderDefault(int $page = 1): void
     {
-        $role   = (string) ($this->getParameter('role')   ?? '');
-        $status = (string) ($this->getParameter('status') ?? '');
-        $search = trim((string) ($this->getParameter('search') ?? ''));
+        $roleRaw = $this->getParameter('role');
+        $role = is_string($roleRaw) ? $roleRaw : '';
+
+        $statusRaw = $this->getParameter('status');
+        $status = is_string($statusRaw) ? $statusRaw : '';
+
+        $searchRaw = $this->getParameter('search');
+        $search = is_string($searchRaw) ? trim($searchRaw) : '';
 
         $filters = ['role' => $role, 'status' => $status];
 
-        // Two calls — each returns a fresh lazy Selection; no clone needed.
         $total = $this->userRepository->findAllForAdmin($filters, $search)->count('*');
 
         $paginator = new Paginator();
@@ -105,7 +83,10 @@ final class UserPresenter extends BasePresenter
             ->setRequired('Email address is required.')
             ->setMaxLength(180)
             ->addRule(
-                fn ($input) => !$this->userRepository->emailExistsExcept($input->getValue()),
+                function (\Nette\Forms\IControl $input): bool {
+                    $v = $input->getValue();
+                    return !$this->userRepository->emailExistsExcept(is_string($v) ? $v : '');
+                },
                 'This email address is already in use.',
             );
 
@@ -137,10 +118,21 @@ final class UserPresenter extends BasePresenter
         return $form;
     }
 
-    public function createFormSucceeded(Form $form, \stdClass $values): void
+    public function createFormSucceeded(Form $form, mixed $values): void
     {
         try {
-            $this->userFacade->createByAdmin((array) $values);
+            $data = $form->getValues(true);
+            $this->userFacade->createByAdmin([
+                'first_name' => RowType::string($data['first_name']),
+                'last_name'  => RowType::string($data['last_name']),
+                'email'      => RowType::string($data['email']),
+                'password'   => RowType::string($data['password']),
+                'role'       => RowType::string($data['role']),
+                'phone'      => is_string($data['phone'] ?? null) ? $data['phone'] : '',
+                'birth_date' => is_string($data['birth_date'] ?? null) ? $data['birth_date'] : '',
+                'street'     => is_string($data['street'] ?? null) ? $data['street'] : '',
+                'city'       => is_string($data['city'] ?? null) ? $data['city'] : '',
+            ]);
             $this->flashMessage('User created successfully.', 'success');
             $this->redirect('default');
         } catch (\Throwable $e) {
@@ -159,11 +151,11 @@ final class UserPresenter extends BasePresenter
 
     public function renderEdit(int $id): void
     {
-        $u = $this->targetUser;
+        $u = $this->targetUser ?? throw new \LogicException('Target user not loaded.');
 
-        $this->template->title      = 'Edit User — ' . $u->first_name . ' ' . $u->last_name;
+        $this->template->title      = 'Edit User — ' . RowType::string($u->first_name) . ' ' . RowType::string($u->last_name);
         $this->template->targetUser = $u;
-        $this->template->isSelf     = ($u->id === (int) $this->getUser()->getId());
+        $this->template->isSelf     = (RowType::int($u->id) === (int) $this->getUser()->getId());
 
         $this['editForm']->setDefaults([
             'first_name' => $u->first_name,
@@ -195,10 +187,11 @@ final class UserPresenter extends BasePresenter
             ->setRequired('Email address is required.')
             ->setMaxLength(180)
             ->addRule(
-                fn ($input) => !$this->userRepository->emailExistsExcept(
-                    $input->getValue(),
-                    $this->targetUser?->id,
-                ),
+                function (\Nette\Forms\IControl $input): bool {
+                    $v = $input->getValue();
+                    $excludeId = $this->targetUser !== null ? RowType::int($this->targetUser->id) : null;
+                    return !$this->userRepository->emailExistsExcept(is_string($v) ? $v : '', $excludeId);
+                },
                 'This email address is already in use.',
             );
 
@@ -231,25 +224,39 @@ final class UserPresenter extends BasePresenter
         return $form;
     }
 
-    public function editFormSucceeded(Form $form, \stdClass $values): void
+    public function editFormSucceeded(Form $form, mixed $values): void
     {
-        $id     = $this->targetUser->id;
-        $isSelf = ($id === (int) $this->getUser()->getId());
+        $user   = $this->targetUser ?? throw new \LogicException('Target user not loaded.');
+        $userId = RowType::int($user->id);
+        $isSelf = ($userId === (int) $this->getUser()->getId());
 
-        // Self-protection: admin cannot demote themselves or lose approved status.
+        $data = $form->getValues(true);
+        $roleValue   = RowType::string($data['role']);
+        $statusValue = RowType::string($data['status']);
+
         if ($isSelf) {
-            if ($values->role !== 'admin') {
+            if ($roleValue !== 'admin') {
                 $form->addError('You cannot change your own role.');
                 return;
             }
-            if ($values->status !== 'approved') {
+            if ($statusValue !== 'approved') {
                 $form->addError('You cannot change your own account status.');
                 return;
             }
         }
 
         try {
-            $this->userFacade->update($id, (array) $values);
+            $this->userFacade->update($userId, [
+                'first_name' => RowType::string($data['first_name']),
+                'last_name'  => RowType::string($data['last_name']),
+                'email'      => RowType::string($data['email']),
+                'role'       => $roleValue,
+                'status'     => $statusValue,
+                'phone'      => is_string($data['phone'] ?? null) ? $data['phone'] : '',
+                'birth_date' => is_string($data['birth_date'] ?? null) ? $data['birth_date'] : '',
+                'street'     => is_string($data['street'] ?? null) ? $data['street'] : '',
+                'city'       => is_string($data['city'] ?? null) ? $data['city'] : '',
+            ]);
             $this->flashMessage('User updated successfully.', 'success');
             $this->redirect('default');
         } catch (\Throwable $e) {
@@ -268,8 +275,9 @@ final class UserPresenter extends BasePresenter
 
     public function renderPassword(int $id): void
     {
-        $this->template->title      = 'Reset Password — ' . $this->targetUser->first_name . ' ' . $this->targetUser->last_name;
-        $this->template->targetUser = $this->targetUser;
+        $user = $this->targetUser ?? throw new \LogicException('Target user not loaded.');
+        $this->template->title      = 'Reset Password — ' . RowType::string($user->first_name) . ' ' . RowType::string($user->last_name);
+        $this->template->targetUser = $user;
     }
 
     protected function createComponentPasswordForm(): Form
@@ -298,12 +306,16 @@ final class UserPresenter extends BasePresenter
         return $form;
     }
 
-    public function passwordFormSucceeded(Form $form, \stdClass $values): void
+    public function passwordFormSucceeded(Form $form, mixed $values): void
     {
+        $user = $this->targetUser ?? throw new \LogicException('Target user not loaded.');
+        $userId = RowType::int($user->id);
+
         try {
-            $this->userFacade->resetPassword($this->targetUser->id, $values->new_password);
+            $data = $form->getValues(true);
+            $this->userFacade->resetPassword($userId, RowType::string($data['new_password']));
             $this->flashMessage('Password has been reset successfully.', 'success');
-            $this->redirect('edit', $this->targetUser->id);
+            $this->redirect('edit', $userId);
         } catch (\Throwable $e) {
             $this->flashMessage('Failed to reset password: ' . $e->getMessage(), 'danger');
         }
@@ -317,7 +329,7 @@ final class UserPresenter extends BasePresenter
     {
         $user = $this->requireActiveUser($id);
 
-        if ($user->id === (int) $this->getUser()->getId()) {
+        if (RowType::int($user->id) === (int) $this->getUser()->getId()) {
             $this->flashMessage('You cannot delete your own account.', 'danger');
             $this->redirect('default');
         }
@@ -344,17 +356,19 @@ final class UserPresenter extends BasePresenter
         return $form;
     }
 
-    public function deleteFormSucceeded(Form $form, \stdClass $values): void
+    public function deleteFormSucceeded(Form $form, mixed $values): void
     {
-        // Belt-and-suspenders re-check.
-        if ($this->targetUser->id === (int) $this->getUser()->getId()) {
+        $user = $this->targetUser ?? throw new \LogicException('Target user not loaded.');
+        $userId = RowType::int($user->id);
+
+        if ($userId === (int) $this->getUser()->getId()) {
             $this->flashMessage('You cannot delete your own account.', 'danger');
             $this->redirect('default');
         }
 
         try {
-            $name = $this->targetUser->first_name . ' ' . $this->targetUser->last_name;
-            $this->userFacade->softDelete($this->targetUser->id);
+            $name = RowType::string($user->first_name) . ' ' . RowType::string($user->last_name);
+            $this->userFacade->softDelete($userId);
             $this->flashMessage("User \"{$name}\" has been deleted.", 'success');
             $this->redirect('default');
         } catch (\Throwable $e) {
@@ -366,9 +380,6 @@ final class UserPresenter extends BasePresenter
     //  Internal helpers
     // ==================================================================
 
-    /**
-     * Loads a non-deleted user or terminates with 404.
-     */
     private function requireActiveUser(int $id): ActiveRow
     {
         $user = $this->userRepository->findById($id);
@@ -380,9 +391,7 @@ final class UserPresenter extends BasePresenter
         return $user;
     }
 
-    /**
-     * @return array<string, string>
-     */
+    /** @return array<string, string> */
     private static function roleOptions(): array
     {
         return [

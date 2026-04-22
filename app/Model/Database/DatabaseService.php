@@ -8,12 +8,6 @@ use Nette\Database\Explorer;
 use Nette\Database\Table\ActiveRow;
 use Nette\Database\Table\Selection;
 
-/**
- * Thin wrapper around Nette\Database\Explorer.
- *
- * Registered as a service in config/common.neon so that it can be
- * injected into presenters and repositories via constructor injection.
- */
 final class DatabaseService
 {
     public function __construct(
@@ -21,17 +15,12 @@ final class DatabaseService
     ) {
     }
 
-    /**
-     * Returns a Selection (query builder) for the given table.
-     */
+    /** @return Selection<ActiveRow> */
     public function table(string $table): Selection
     {
         return $this->explorer->table($table);
     }
 
-    /**
-     * Fetches a single row by primary key; returns null when not found.
-     */
     public function find(string $table, int|string $id): ?ActiveRow
     {
         $row = $this->explorer->table($table)->get($id);
@@ -40,10 +29,8 @@ final class DatabaseService
     }
 
     /**
-     * Executes a raw SQL query and returns the result set.
-     * Use only when the query builder cannot express the query.
-     *
-     * @param  mixed  ...$params  PDO-style positional bindings
+     * @param literal-string $sql
+     * @param mixed ...$params PDO-style positional bindings
      */
     public function query(string $sql, mixed ...$params): \Nette\Database\ResultSet
     {
@@ -51,11 +38,8 @@ final class DatabaseService
     }
 
     /**
-     * Wraps a callable in a database transaction.
-     * Re-throws any exception and rolls back automatically.
-     *
      * @template T
-     * @param  callable(): T  $callback
+     * @param callable(): T $callback
      * @return T
      */
     public function transaction(callable $callback): mixed
@@ -63,9 +47,6 @@ final class DatabaseService
         return $this->explorer->transaction($callback);
     }
 
-    /**
-     * Exposes the underlying Explorer for cases where direct access is needed.
-     */
     public function getExplorer(): Explorer
     {
         return $this->explorer;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Admin\Presenters;
 
+use App\Model\Database\RowType;
 use App\Model\Facade\ItemFacade;
 use App\Model\Repository\ItemRepository;
 use App\Model\Repository\ItemTypeRepository;
@@ -13,19 +14,6 @@ use Nette\Application\UI\Form;
 use Nette\Database\Table\ActiveRow;
 use Nette\Utils\Paginator;
 
-/**
- * Admin CRUD for items.
- *
- * Item types and locations each have their own presenter
- * (ItemTypePresenter, LocationPresenter).
- *
- * Actions:
- *   default — paginated, filterable item list
- *   create  — add a new item
- *   edit    — modify an existing item
- *   detail  — view item info + service history + add service record
- *   delete  — confirm and hard-delete (blocked when tickets exist)
- */
 final class ItemPresenter extends BasePresenter
 {
     private const ITEMS_PER_PAGE = 20;
@@ -69,9 +57,13 @@ final class ItemPresenter extends BasePresenter
 
     public function renderDefault(int $page = 1): void
     {
-        $typeId     = (int) ($this->getParameter('typeId')     ?? 0);
-        $locationId = (int) ($this->getParameter('locationId') ?? 0);
-        $search     = trim((string) ($this->getParameter('search') ?? ''));
+        $typeIdRaw     = $this->getParameter('typeId');
+        $locationIdRaw = $this->getParameter('locationId');
+        $searchRaw     = $this->getParameter('search');
+
+        $typeId     = is_numeric($typeIdRaw) ? (int) $typeIdRaw : 0;
+        $locationId = is_numeric($locationIdRaw) ? (int) $locationIdRaw : 0;
+        $search     = is_string($searchRaw) ? trim($searchRaw) : '';
 
         $total = $this->itemRepository->findAllFiltered($typeId, $locationId, $search)->count('*');
 
@@ -135,12 +127,22 @@ final class ItemPresenter extends BasePresenter
         return $form;
     }
 
-    public function createFormSucceeded(Form $form, \stdClass $values): void
+    public function createFormSucceeded(Form $form, mixed $values): void
     {
         try {
-            $item = $this->itemFacade->createItem((array) $values);
-            $this->flashMessage("Item \"{$item->name}\" created successfully.", 'success');
-            $this->redirect('detail', $item->id);
+            $data          = $form->getValues(true);
+            $itemTypeIdRaw = $data['item_type_id'] ?? null;
+            $locationIdRaw = $data['location_id'] ?? null;
+            $item = $this->itemFacade->createItem([
+                'name'         => RowType::string($data['name']),
+                'item_type_id' => is_numeric($itemTypeIdRaw) ? (int) $itemTypeIdRaw : 0,
+                'location_id'  => is_numeric($locationIdRaw) ? (int) $locationIdRaw : 0,
+                'description'  => is_string($data['description'] ?? null) ? $data['description'] : '',
+            ]);
+            $itemName = RowType::string($item->name);
+            $itemId   = RowType::int($item->id);
+            $this->flashMessage("Item \"{$itemName}\" created successfully.", 'success');
+            $this->redirect('detail', $itemId);
         } catch (\Throwable $e) {
             $this->flashMessage('Failed to create item: ' . $e->getMessage(), 'danger');
         }
@@ -157,9 +159,11 @@ final class ItemPresenter extends BasePresenter
 
     public function renderEdit(int $id): void
     {
-        $item = $this->targetItem;
+        $item = $this->targetItem ?? throw new \LogicException('Target item not loaded.');
 
-        $this->template->title      = "Edit Item — {$item->name}";
+        $itemName = RowType::string($item->name);
+
+        $this->template->title      = "Edit Item — {$itemName}";
         $this->template->targetItem = $item;
         $this->template->itemTypes  = $this->itemTypeRepository->fetchPairsForSelect();
         $this->template->locations  = $this->locationRepository->fetchPairsForSelect();
@@ -201,12 +205,23 @@ final class ItemPresenter extends BasePresenter
         return $form;
     }
 
-    public function editFormSucceeded(Form $form, \stdClass $values): void
+    public function editFormSucceeded(Form $form, mixed $values): void
     {
+        $item   = $this->targetItem ?? throw new \LogicException('Target item not loaded.');
+        $itemId = RowType::int($item->id);
+
         try {
-            $this->itemFacade->updateItem($this->targetItem->id, (array) $values);
+            $data          = $form->getValues(true);
+            $itemTypeIdRaw = $data['item_type_id'] ?? null;
+            $locationIdRaw = $data['location_id'] ?? null;
+            $this->itemFacade->updateItem($itemId, [
+                'name'         => RowType::string($data['name']),
+                'item_type_id' => is_numeric($itemTypeIdRaw) ? (int) $itemTypeIdRaw : 0,
+                'location_id'  => is_numeric($locationIdRaw) ? (int) $locationIdRaw : 0,
+                'description'  => is_string($data['description'] ?? null) ? $data['description'] : '',
+            ]);
             $this->flashMessage('Item updated successfully.', 'success');
-            $this->redirect('detail', $this->targetItem->id);
+            $this->redirect('detail', $itemId);
         } catch (\Throwable $e) {
             $this->flashMessage('Failed to update item: ' . $e->getMessage(), 'danger');
         }
@@ -223,13 +238,18 @@ final class ItemPresenter extends BasePresenter
 
     public function renderDetail(int $id): void
     {
-        $item = $this->targetItem;
+        $item = $this->targetItem ?? throw new \LogicException('Target item not loaded.');
 
-        $this->template->title       = "Item Detail — {$item->name}";
-        $this->template->targetItem  = $item;
-        $this->template->itemType    = $this->itemTypeRepository->findById($item->item_type_id);
-        $this->template->location    = $this->locationRepository->findById($item->location_id);
-        $this->template->history     = $this->serviceHistoryRepository->findByItem($item->id)->fetchAll();
+        $itemName   = RowType::string($item->name);
+        $itemTypeId = RowType::int($item->item_type_id);
+        $locationId = RowType::int($item->location_id);
+        $itemId     = RowType::int($item->id);
+
+        $this->template->title      = "Item Detail — {$itemName}";
+        $this->template->targetItem = $item;
+        $this->template->itemType   = $this->itemTypeRepository->findById($itemTypeId);
+        $this->template->location   = $this->locationRepository->findById($locationId);
+        $this->template->history    = $this->serviceHistoryRepository->findByItem($itemId)->fetchAll();
     }
 
     protected function createComponentAddServiceRecordForm(): Form
@@ -251,16 +271,19 @@ final class ItemPresenter extends BasePresenter
         return $form;
     }
 
-    public function addServiceRecordFormSucceeded(Form $form, \stdClass $values): void
+    public function addServiceRecordFormSucceeded(Form $form, mixed $values): void
     {
+        $item   = $this->targetItem ?? throw new \LogicException('Target item not loaded.');
+        $itemId = RowType::int($item->id);
+
         try {
-            $this->itemFacade->addServiceRecord(
-                $this->targetItem->id,
-                $values->description,
-                (int) $this->getUser()->getId(),
-            );
+            $data        = $form->getValues(true);
+            $description = RowType::string($data['description']);
+            $userId      = (int) $this->getUser()->getId();
+
+            $this->itemFacade->addServiceRecord($itemId, $description, $userId);
             $this->flashMessage('Service record added.', 'success');
-            $this->redirect('detail', $this->targetItem->id);
+            $this->redirect('detail', $itemId);
         } catch (\Throwable $e) {
             $this->flashMessage('Failed to add service record: ' . $e->getMessage(), 'danger');
         }
@@ -295,17 +318,19 @@ final class ItemPresenter extends BasePresenter
         return $form;
     }
 
-    public function deleteFormSucceeded(Form $form, \stdClass $values): void
+    public function deleteFormSucceeded(Form $form, mixed $values): void
     {
-        $name = $this->targetItem->name;
+        $item   = $this->targetItem ?? throw new \LogicException('Target item not loaded.');
+        $itemId = RowType::int($item->id);
+        $name   = RowType::string($item->name);
 
         try {
-            $this->itemFacade->deleteItem($this->targetItem->id);
+            $this->itemFacade->deleteItem($itemId);
             $this->flashMessage("Item \"{$name}\" has been deleted.", 'success');
             $this->redirect('default');
         } catch (\RuntimeException $e) {
             $this->flashMessage($e->getMessage(), 'danger');
-            $this->redirect('delete', $this->targetItem->id);
+            $this->redirect('delete', $itemId);
         }
     }
 

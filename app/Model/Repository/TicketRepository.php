@@ -15,9 +15,6 @@ final class TicketRepository extends Repository
         return 'tickets';
     }
 
-    /**
-     * Overrides base findById to exclude soft-deleted tickets.
-     */
     public function findById(int $id): ?ActiveRow
     {
         $row = $this->selection()
@@ -28,10 +25,7 @@ final class TicketRepository extends Repository
         return $row instanceof ActiveRow ? $row : null;
     }
 
-    /**
-     * Returns non-deleted tickets with optional status / item / title filters.
-     * Ordered newest first.
-     */
+    /** @return Selection<ActiveRow> */
     public function findAllFiltered(string $status = '', int $itemId = 0, string $search = ''): Selection
     {
         $q = $this->selection()
@@ -53,9 +47,7 @@ final class TicketRepository extends Repository
         return $q;
     }
 
-    /**
-     * Tickets created by a specific user (non-deleted).
-     */
+    /** @return Selection<ActiveRow> */
     public function findByCreator(int $userId): Selection
     {
         return $this->selection()
@@ -64,9 +56,7 @@ final class TicketRepository extends Repository
             ->order('created_at DESC');
     }
 
-    /**
-     * Tickets assigned to a specific user (non-deleted).
-     */
+    /** @return Selection<ActiveRow> */
     public function findByAssigned(int $userId): Selection
     {
         return $this->selection()
@@ -75,10 +65,7 @@ final class TicketRepository extends Repository
             ->order('created_at DESC');
     }
 
-    /**
-     * Returns non-deleted, non-closed tickets for a specific item.
-     * Used to find tickets to notify when a service record is added.
-     */
+    /** @return Selection<ActiveRow> */
     public function findActiveByItem(int $itemId): Selection
     {
         return $this->selection()
@@ -87,9 +74,6 @@ final class TicketRepository extends Repository
             ->where('status != ?', 'closed');
     }
 
-    /**
-     * Soft-deletes a ticket. Returns number of affected rows.
-     */
     public function softDelete(int $id): int
     {
         return $this->selection()

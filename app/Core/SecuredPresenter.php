@@ -62,7 +62,8 @@ abstract class SecuredPresenter extends Presenter
         // Layer 2 — account must be approved.
         // Guard against accounts downgraded after session establishment
         // (e.g. admin rejects a user who is already logged in).
-        $status = (string) ($user->getIdentity()?->getData()['status'] ?? '');
+        $statusRaw = $user->getIdentity()?->getData()['status'] ?? '';
+        $status = is_string($statusRaw) ? $statusRaw : '';
         if ($status !== 'approved') {
             $user->logout(true);
             $this->redirect(':Front:Auth:login');

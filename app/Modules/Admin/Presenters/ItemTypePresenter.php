@@ -4,20 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Admin\Presenters;
 
+use App\Model\Database\RowType;
 use App\Model\Facade\ItemFacade;
 use App\Model\Repository\ItemTypeRepository;
 use Nette\Application\UI\Form;
 use Nette\Database\Table\ActiveRow;
+use Nette\Http\FileUpload;
 
-/**
- * Admin CRUD for item types.
- *
- * Actions:
- *   default — list all item types
- *   create  — add a new item type
- *   edit    — rename an item type + manage its blueprint image
- *   delete  — confirm and delete (blocked when items are assigned)
- */
 final class ItemTypePresenter extends BasePresenter
 {
     private ?ActiveRow $targetType = null;
@@ -72,11 +65,14 @@ final class ItemTypePresenter extends BasePresenter
         return $form;
     }
 
-    public function createFormSucceeded(Form $form, \stdClass $values): void
+    public function createFormSucceeded(Form $form, mixed $values): void
     {
+        $data = $form->getValues(true);
+        $name = RowType::string($data['name']);
+
         try {
-            $this->itemFacade->createItemType($values->name);
-            $this->flashMessage("Item type \"{$values->name}\" created.", 'success');
+            $this->itemFacade->createItemType($name);
+            $this->flashMessage("Item type \"{$name}\" created.", 'success');
             $this->redirect('default');
         } catch (\RuntimeException $e) {
             $form->addError($e->getMessage());
@@ -94,10 +90,13 @@ final class ItemTypePresenter extends BasePresenter
 
     public function renderEdit(int $id): void
     {
-        $this->template->title      = "Edit Item Type — {$this->targetType->name}";
-        $this->template->targetType = $this->targetType;
+        $type     = $this->targetType ?? throw new \LogicException('Target type not loaded.');
+        $typeName = RowType::string($type->name);
 
-        $this['editForm']->setDefaults(['name' => $this->targetType->name]);
+        $this->template->title      = "Edit Item Type — {$typeName}";
+        $this->template->targetType = $type;
+
+        $this['editForm']->setDefaults(['name' => $type->name]);
     }
 
     protected function createComponentEditForm(): Form
@@ -123,17 +122,23 @@ final class ItemTypePresenter extends BasePresenter
         return $form;
     }
 
-    public function editFormSucceeded(Form $form, \stdClass $values): void
+    public function editFormSucceeded(Form $form, mixed $values): void
     {
-        try {
-            // Always update the name.
-            $this->itemFacade->updateItemType($this->targetType->id, $values->name);
+        $type   = $this->targetType ?? throw new \LogicException('Target type not loaded.');
+        $typeId = RowType::int($type->id);
+        $data   = $form->getValues(true);
+        $name   = RowType::string($data['name']);
 
-            // Blueprint: remove takes priority over a simultaneous upload.
-            if ($values->remove_blueprint) {
-                $this->itemFacade->removeItemTypeBlueprint($this->targetType->id);
-            } elseif (isset($values->blueprint) && $values->blueprint->isOk() && $values->blueprint->getSize() > 0) {
-                $this->itemFacade->updateItemTypeBlueprint($this->targetType->id, $values->blueprint);
+        try {
+            $this->itemFacade->updateItemType($typeId, $name);
+
+            $removeBlueprint = (bool) ($data['remove_blueprint'] ?? false);
+            $blueprint       = $data['blueprint'] ?? null;
+
+            if ($removeBlueprint) {
+                $this->itemFacade->removeItemTypeBlueprint($typeId);
+            } elseif ($blueprint instanceof FileUpload && $blueprint->isOk() && $blueprint->getSize() > 0) {
+                $this->itemFacade->updateItemTypeBlueprint($typeId, $blueprint);
             }
 
             $this->flashMessage('Item type updated.', 'success');
@@ -172,17 +177,19 @@ final class ItemTypePresenter extends BasePresenter
         return $form;
     }
 
-    public function deleteFormSucceeded(Form $form, \stdClass $values): void
+    public function deleteFormSucceeded(Form $form, mixed $values): void
     {
-        $name = $this->targetType->name;
+        $type   = $this->targetType ?? throw new \LogicException('Target type not loaded.');
+        $typeId = RowType::int($type->id);
+        $name   = RowType::string($type->name);
 
         try {
-            $this->itemFacade->deleteItemType($this->targetType->id);
+            $this->itemFacade->deleteItemType($typeId);
             $this->flashMessage("Item type \"{$name}\" has been deleted.", 'success');
             $this->redirect('default');
         } catch (\RuntimeException $e) {
             $this->flashMessage($e->getMessage(), 'danger');
-            $this->redirect('delete', $this->targetType->id);
+            $this->redirect('delete', $typeId);
         }
     }
 

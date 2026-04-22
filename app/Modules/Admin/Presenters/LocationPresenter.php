@@ -4,20 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Admin\Presenters;
 
+use App\Model\Database\RowType;
 use App\Model\Facade\ItemFacade;
 use App\Model\Repository\LocationRepository;
 use Nette\Application\UI\Form;
 use Nette\Database\Table\ActiveRow;
 
-/**
- * Admin CRUD for locations.
- *
- * Actions:
- *   default — list all locations
- *   create  — add a new location
- *   edit    — rename a location
- *   delete  — confirm and delete (blocked when items are assigned)
- */
 final class LocationPresenter extends BasePresenter
 {
     private ?ActiveRow $targetLocation = null;
@@ -72,11 +64,14 @@ final class LocationPresenter extends BasePresenter
         return $form;
     }
 
-    public function createFormSucceeded(Form $form, \stdClass $values): void
+    public function createFormSucceeded(Form $form, mixed $values): void
     {
+        $data = $form->getValues(true);
+        $name = RowType::string($data['name']);
+
         try {
-            $this->itemFacade->createLocation($values->name);
-            $this->flashMessage("Location \"{$values->name}\" created.", 'success');
+            $this->itemFacade->createLocation($name);
+            $this->flashMessage("Location \"{$name}\" created.", 'success');
             $this->redirect('default');
         } catch (\RuntimeException $e) {
             $form->addError($e->getMessage());
@@ -94,10 +89,13 @@ final class LocationPresenter extends BasePresenter
 
     public function renderEdit(int $id): void
     {
-        $this->template->title          = "Edit Location — {$this->targetLocation->name}";
-        $this->template->targetLocation = $this->targetLocation;
+        $location     = $this->targetLocation ?? throw new \LogicException('Target location not loaded.');
+        $locationName = RowType::string($location->name);
 
-        $this['editForm']->setDefaults(['name' => $this->targetLocation->name]);
+        $this->template->title          = "Edit Location — {$locationName}";
+        $this->template->targetLocation = $location;
+
+        $this['editForm']->setDefaults(['name' => $location->name]);
     }
 
     protected function createComponentEditForm(): Form
@@ -117,10 +115,15 @@ final class LocationPresenter extends BasePresenter
         return $form;
     }
 
-    public function editFormSucceeded(Form $form, \stdClass $values): void
+    public function editFormSucceeded(Form $form, mixed $values): void
     {
+        $location   = $this->targetLocation ?? throw new \LogicException('Target location not loaded.');
+        $locationId = RowType::int($location->id);
+        $data       = $form->getValues(true);
+        $name       = RowType::string($data['name']);
+
         try {
-            $this->itemFacade->updateLocation($this->targetLocation->id, $values->name);
+            $this->itemFacade->updateLocation($locationId, $name);
             $this->flashMessage('Location updated.', 'success');
             $this->redirect('default');
         } catch (\RuntimeException $e) {
@@ -157,17 +160,19 @@ final class LocationPresenter extends BasePresenter
         return $form;
     }
 
-    public function deleteFormSucceeded(Form $form, \stdClass $values): void
+    public function deleteFormSucceeded(Form $form, mixed $values): void
     {
-        $name = $this->targetLocation->name;
+        $location   = $this->targetLocation ?? throw new \LogicException('Target location not loaded.');
+        $locationId = RowType::int($location->id);
+        $name       = RowType::string($location->name);
 
         try {
-            $this->itemFacade->deleteLocation($this->targetLocation->id);
+            $this->itemFacade->deleteLocation($locationId);
             $this->flashMessage("Location \"{$name}\" has been deleted.", 'success');
             $this->redirect('default');
         } catch (\RuntimeException $e) {
             $this->flashMessage($e->getMessage(), 'danger');
-            $this->redirect('delete', $this->targetLocation->id);
+            $this->redirect('delete', $locationId);
         }
     }
 

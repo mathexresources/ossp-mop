@@ -8,12 +8,6 @@ use App\Model\Database\Repository;
 use Nette\Database\Table\ActiveRow;
 use Nette\Database\Table\Selection;
 
-/**
- * Repository for ticket_damage_points.
- *
- * Damage points are soft-deleted (deleted_at column).
- * All reads automatically exclude soft-deleted rows.
- */
 final class DamagePointRepository extends Repository
 {
     protected function getTable(): string
@@ -21,9 +15,6 @@ final class DamagePointRepository extends Repository
         return 'ticket_damage_points';
     }
 
-    /**
-     * Override findById to exclude soft-deleted rows.
-     */
     public function findById(int $id): ?ActiveRow
     {
         $row = $this->selection()
@@ -34,9 +25,7 @@ final class DamagePointRepository extends Repository
         return $row instanceof ActiveRow ? $row : null;
     }
 
-    /**
-     * Returns all active (non-deleted) damage points for a ticket, ordered by id.
-     */
+    /** @return Selection<ActiveRow> */
     public function findByTicket(int $ticketId): Selection
     {
         return $this->selection()
@@ -45,9 +34,6 @@ final class DamagePointRepository extends Repository
             ->order('id ASC');
     }
 
-    /**
-     * Soft-deletes a damage point.
-     */
     public function softDelete(int $id): void
     {
         $this->update($id, ['deleted_at' => new \DateTime()]);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Model\Facade;
 
+use App\Model\Database\RowType;
 use App\Model\Mail\MailService;
 use App\Model\Repository\ItemRepository;
 use App\Model\Repository\ItemTypeRepository;
@@ -109,8 +110,9 @@ final class ItemFacade
             return;
         }
 
-        if ($type->blueprint_path) {
-            $fullPath = $this->wwwRoot() . '/' . $type->blueprint_path;
+        $blueprintPath = RowType::nullableString($type->blueprint_path);
+        if ($blueprintPath !== null) {
+            $fullPath = $this->wwwRoot() . '/' . $blueprintPath;
             if (file_exists($fullPath)) {
                 @unlink($fullPath);
             }
@@ -135,10 +137,13 @@ final class ItemFacade
         }
 
         $type = $this->itemTypeRepository->findById($id);
-        if ($type && $type->blueprint_path) {
-            $fullPath = $this->wwwRoot() . '/' . $type->blueprint_path;
-            if (file_exists($fullPath)) {
-                @unlink($fullPath);
+        if ($type !== null) {
+            $blueprintPath = RowType::nullableString($type->blueprint_path);
+            if ($blueprintPath !== null) {
+                $fullPath = $this->wwwRoot() . '/' . $blueprintPath;
+                if (file_exists($fullPath)) {
+                    @unlink($fullPath);
+                }
             }
         }
 
@@ -251,11 +256,13 @@ final class ItemFacade
         // Resolve "added by" name for email template.
         $addedByUser = $this->userRepository->findById($createdBy);
         $addedByName = $addedByUser
-            ? trim($addedByUser->first_name . ' ' . $addedByUser->last_name)
+            ? trim(RowType::string($addedByUser->first_name) . ' ' . RowType::string($addedByUser->last_name))
             : "User #{$createdBy}";
 
         foreach ($this->ticketRepository->findActiveByItem($itemId) as $ticket) {
-            $creatorId = (int) $ticket->created_by;
+            $creatorId = RowType::int($ticket->created_by);
+            $ticketId = RowType::int($ticket->id);
+            $ticketTitle = RowType::string($ticket->title);
 
             // Don't notify the person who added the record.
             if ($creatorId === $createdBy) {
@@ -266,8 +273,8 @@ final class ItemFacade
             $this->notificationFacade->notify(
                 $creatorId,
                 NotificationFacade::TYPE_SERVICE_HISTORY_ADDED,
-                "A new service record was added for the item associated with your ticket #{$ticket->id} \"{$ticket->title}\".",
-                '/ticket/detail/' . (int) $ticket->id,
+                "A new service record was added for the item associated with your ticket #{$ticketId} \"{$ticketTitle}\".",
+                '/ticket/detail/' . $ticketId,
             );
 
             // Email the ticket creator.

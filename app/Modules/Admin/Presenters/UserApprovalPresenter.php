@@ -4,15 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Admin\Presenters;
 
+use App\Model\Database\RowType;
 use App\Model\Facade\UserFacade;
 use Nette\Application\UI\Form;
 
-/**
- * Handles the dedicated pending-user approval flow.
- *
- * UserRepository is provided by Admin\BasePresenter via
- * injectUserRepository().  Only UserFacade needs an additional inject.
- */
 final class UserApprovalPresenter extends BasePresenter
 {
     private UserFacade $userFacade;
@@ -39,7 +34,7 @@ final class UserApprovalPresenter extends BasePresenter
     public function renderApprove(int $id): void
     {
         $user = $this->userRepository->findById($id);
-        if ($user === null || $user->status !== 'pending') {
+        if ($user === null || RowType::string($user->status) !== 'pending') {
             $this->flashMessage('User not found or no longer pending.', 'warning');
             $this->redirect('default');
         }
@@ -61,9 +56,12 @@ final class UserApprovalPresenter extends BasePresenter
         return $form;
     }
 
-    public function approveFormSucceeded(Form $form, \stdClass $values): void
+    public function approveFormSucceeded(Form $form, mixed $values): void
     {
-        $this->userFacade->approve((int) $values->userId);
+        $data      = $form->getValues(true);
+        $userIdRaw = $data['userId'] ?? null;
+        $userId    = is_numeric($userIdRaw) ? (int) $userIdRaw : 0;
+        $this->userFacade->approve($userId);
         $this->flashMessage('User account approved.', 'success');
         $this->redirect('default');
     }
@@ -75,7 +73,7 @@ final class UserApprovalPresenter extends BasePresenter
     public function renderReject(int $id): void
     {
         $user = $this->userRepository->findById($id);
-        if ($user === null || $user->status !== 'pending') {
+        if ($user === null || RowType::string($user->status) !== 'pending') {
             $this->flashMessage('User not found or no longer pending.', 'warning');
             $this->redirect('default');
         }
@@ -104,10 +102,13 @@ final class UserApprovalPresenter extends BasePresenter
         return $form;
     }
 
-    public function rejectFormSucceeded(Form $form, \stdClass $values): void
+    public function rejectFormSucceeded(Form $form, mixed $values): void
     {
-        $reason = trim((string) ($values->reason ?? ''));
-        $this->userFacade->reject((int) $values->userId, $reason !== '' ? $reason : null);
+        $data      = $form->getValues(true);
+        $userIdRaw = $data['userId'] ?? null;
+        $userId    = is_numeric($userIdRaw) ? (int) $userIdRaw : 0;
+        $reason = trim(is_string($data['reason'] ?? null) ? $data['reason'] : '');
+        $this->userFacade->reject($userId, $reason !== '' ? $reason : null);
         $this->flashMessage('User account rejected.', 'warning');
         $this->redirect('default');
     }

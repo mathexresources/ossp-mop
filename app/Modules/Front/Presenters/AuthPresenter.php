@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Front\Presenters;
 
+use App\Model\Database\RowType;
 use App\Model\Facade\UserFacade;
 use App\Model\Repository\UserRepository;
 use Nette\Application\UI\Form;
@@ -52,10 +53,14 @@ final class AuthPresenter extends BasePresenter
         return $form;
     }
 
-    public function loginFormSucceeded(Form $form, \stdClass $values): void
+    public function loginFormSucceeded(Form $form, mixed $values): void
     {
+        $data     = $form->getValues(true);
+        $email    = RowType::string($data['email']);
+        $password = RowType::string($data['password']);
+
         try {
-            $this->getUser()->login($values->email, $values->password);
+            $this->getUser()->login($email, $password);
             $this->redirect(':Front:Homepage:default');
         } catch (AuthenticationException $e) {
             if ($e->getCode() === Authenticator::NOT_APPROVED) {
@@ -66,7 +71,6 @@ final class AuthPresenter extends BasePresenter
                 };
                 $form->addError($message);
             } else {
-                // INVALID_CREDENTIAL — give no hint about which field is wrong
                 $form->addError('Invalid email or password.');
             }
         }
@@ -108,7 +112,7 @@ final class AuthPresenter extends BasePresenter
         $form->addPassword('password_confirm', 'Confirm password')
             ->setRequired('Please confirm your password.')
             ->addRule(Form::Equal, 'Passwords do not match.', $password)
-            ->setOmitted()                 // do not pass to values array
+            ->setOmitted()
             ->setHtmlAttribute('autocomplete', 'new-password');
 
         $form->addText('phone', 'Phone number')
@@ -132,15 +136,31 @@ final class AuthPresenter extends BasePresenter
         return $form;
     }
 
-    public function registerFormSucceeded(Form $form, \stdClass $values): void
+    public function registerFormSucceeded(Form $form, mixed $values): void
     {
-        // Guard against duplicate e-mail (race condition after client-side check).
-        if ($this->userRepository->emailExists($values->email)) {
-            $form['email']->addError('This email address is already registered.');
+        $data  = $form->getValues(true);
+        $email = RowType::string($data['email']);
+
+        if ($this->userRepository->emailExists($email)) {
+            $emailField = $form->getComponent('email');
+            if ($emailField instanceof \Nette\Forms\Controls\BaseControl) {
+                $emailField->addError('This email address is already registered.');
+            } else {
+                $form->addError('This email address is already registered.');
+            }
             return;
         }
 
-        $this->userFacade->register((array) $values);
+        $this->userFacade->register([
+            'first_name' => RowType::string($data['first_name']),
+            'last_name'  => RowType::string($data['last_name']),
+            'email'      => $email,
+            'password'   => RowType::string($data['password']),
+            'phone'      => is_string($data['phone'] ?? null) ? $data['phone'] : '',
+            'birth_date' => is_string($data['birth_date'] ?? null) ? $data['birth_date'] : '',
+            'street'     => is_string($data['street'] ?? null) ? $data['street'] : '',
+            'city'       => is_string($data['city'] ?? null) ? $data['city'] : '',
+        ]);
 
         $this->flashMessage(
             'Your account has been created and is pending admin approval.'
@@ -156,7 +176,6 @@ final class AuthPresenter extends BasePresenter
 
     public function actionPending(): void
     {
-        // Already logged-in approved users have no reason to be here.
         if ($this->getUser()->isLoggedIn()) {
             $this->redirect(':Front:Homepage:default');
         }

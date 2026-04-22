@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Model\Mail;
 
+use App\Model\Database\RowType;
 use App\Model\Repository\EmailLogRepository;
 use App\Model\Repository\ItemRepository;
 use App\Model\Repository\UserRepository;
@@ -13,35 +14,22 @@ use Nette\Mail\Mailer;
 use Nette\Mail\Message;
 use Tracy\Debugger;
 
-/**
- * Central email-sending service.
- *
- * Every outgoing email goes through this class — no presenter or facade
- * sends directly to the Mailer.  All public methods are non-blocking:
- * exceptions are caught, logged to email_log, and swallowed so that a
- * mail failure can never crash a user-facing request.
- *
- * Templates live in app/Modules/Mail/templates/*.latte and use a shared
- * base layout (layout.latte) with inline CSS for email-client compatibility.
- */
 final class MailService
 {
     private const APP_NAME = 'OSSP MOP';
 
-    /** Latte engine used exclusively for rendering email templates. */
     private Engine $latte;
 
-    /** Absolute path to the email template directory. */
     private string $templateDir;
 
     public function __construct(
-        private readonly Mailer               $mailer,
-        private readonly EmailLogRepository   $emailLog,
-        private readonly UserRepository       $userRepository,
-        private readonly ItemRepository       $itemRepository,
-        private readonly string               $from,
-        private readonly string               $appUrl,
-        string                                $tempDir,
+        private readonly Mailer             $mailer,
+        private readonly EmailLogRepository $emailLog,
+        private readonly UserRepository     $userRepository,
+        private readonly ItemRepository     $itemRepository,
+        private readonly string             $from,
+        private readonly string             $appUrl,
+        string                              $tempDir,
     ) {
         if (!is_dir($tempDir)) {
             mkdir($tempDir, 0777, true);
@@ -50,22 +38,13 @@ final class MailService
         $this->latte = new Engine();
         $this->latte->setTempDirectory($tempDir);
 
-        // MailService is at app/Model/Mail/ → two levels up gives app/
         $this->templateDir = dirname(__DIR__, 2) . '/Modules/Mail/templates';
     }
 
-    // ==================================================================
-    //  User lifecycle emails
-    // ==================================================================
-
-    /**
-     * Welcome email sent to the newly registered user.
-     * Informs them their account is pending admin approval.
-     */
     public function sendWelcome(ActiveRow $user): void
     {
         $this->doSend(
-            to:       (string) $user->email,
+            to:       RowType::string($user->email),
             subject:  'Welcome to ' . self::APP_NAME . ' — your account is pending approval',
             type:     'welcome',
             template: 'welcome',
@@ -73,19 +52,16 @@ final class MailService
         );
     }
 
-    /**
-     * Sends one email per admin notifying them of a new pending registration.
-     *
-     * @param ActiveRow   $newUser The newly registered user
-     * @param ActiveRow[] $admins  Array of admin ActiveRow objects
-     */
+    /** @param ActiveRow[] $admins */
     public function sendAdminNewPending(ActiveRow $newUser, array $admins): void
     {
+        $firstName = RowType::string($newUser->first_name);
+        $lastName = RowType::string($newUser->last_name);
+
         foreach ($admins as $admin) {
             $this->doSend(
-                to:       (string) $admin->email,
-                subject:  'New user registration pending approval — '
-                              . $newUser->first_name . ' ' . $newUser->last_name,
+                to:       RowType::string($admin->email),
+                subject:  "New user registration pending approval — {$firstName} {$lastName}",
                 type:     'admin_new_pending',
                 template: 'adminNewPending',
                 params:   ['newUser' => $newUser, 'admin' => $admin],
@@ -93,13 +69,10 @@ final class MailService
         }
     }
 
-    /**
-     * Account-approved email sent to the user.
-     */
     public function sendApproved(ActiveRow $user): void
     {
         $this->doSend(
-            to:       (string) $user->email,
+            to:       RowType::string($user->email),
             subject:  'Your account has been approved — you can now log in',
             type:     'approved',
             template: 'approved',
@@ -107,13 +80,10 @@ final class MailService
         );
     }
 
-    /**
-     * Account-rejected email sent to the user, optionally including the reason.
-     */
     public function sendRejected(ActiveRow $user, ?string $reason): void
     {
         $this->doSend(
-            to:       (string) $user->email,
+            to:       RowType::string($user->email),
             subject:  'Your account registration was not approved',
             type:     'rejected',
             template: 'rejected',
@@ -121,13 +91,10 @@ final class MailService
         );
     }
 
-    /**
-     * Password-changed notice sent to the user after an admin reset.
-     */
     public function sendPasswordChanged(ActiveRow $user): void
     {
         $this->doSend(
-            to:       (string) $user->email,
+            to:       RowType::string($user->email),
             subject:  'Your password has been changed',
             type:     'password_changed',
             template: 'passwordChanged',
@@ -135,29 +102,22 @@ final class MailService
         );
     }
 
-    // ==================================================================
-    //  Ticket emails
-    // ==================================================================
-
-    /**
-     * Notifies all support users of a newly created ticket.
-     *
-     * @param ActiveRow   $ticket       The new ticket
-     * @param ActiveRow[] $supportUsers Array of support user ActiveRows
-     */
+    /** @param ActiveRow[] $supportUsers */
     public function sendTicketCreated(ActiveRow $ticket, array $supportUsers): void
     {
         if (empty($supportUsers)) {
             return;
         }
 
-        $itemName    = $this->resolveItemName((int) $ticket->item_id);
-        $creatorName = $this->resolveUserName((int) $ticket->created_by);
+        $itemName    = $this->resolveItemName(RowType::int($ticket->item_id));
+        $creatorName = $this->resolveUserName(RowType::int($ticket->created_by));
+        $ticketId    = RowType::int($ticket->id);
+        $ticketTitle = RowType::string($ticket->title);
 
         foreach ($supportUsers as $user) {
             $this->doSend(
-                to:       (string) $user->email,
-                subject:  "New ticket #{$ticket->id} — {$ticket->title}",
+                to:       RowType::string($user->email),
+                subject:  "New ticket #{$ticketId} — {$ticketTitle}",
                 type:     'ticket_created',
                 template: 'ticketCreated',
                 params:   [
@@ -169,16 +129,14 @@ final class MailService
         }
     }
 
-    /**
-     * Notifies the assigned support user that a ticket has been assigned to them.
-     */
     public function sendTicketAssigned(ActiveRow $ticket, ActiveRow $assignee): void
     {
-        $itemName = $this->resolveItemName((int) $ticket->item_id);
+        $itemName = $this->resolveItemName(RowType::int($ticket->item_id));
+        $ticketId = RowType::int($ticket->id);
 
         $this->doSend(
-            to:       (string) $assignee->email,
-            subject:  "Ticket #{$ticket->id} has been assigned to you",
+            to:       RowType::string($assignee->email),
+            subject:  "Ticket #{$ticketId} has been assigned to you",
             type:     'ticket_assigned',
             template: 'ticketAssigned',
             params:   [
@@ -189,54 +147,43 @@ final class MailService
         );
     }
 
-    /**
-     * Notifies the ticket creator that the ticket's status has changed.
-     *
-     * @param ActiveRow $ticket    The ticket (status already updated in DB)
-     * @param ActiveRow $creator   The ticket's creator
-     * @param string    $oldStatus Previous status value
-     * @param int       $changedBy User ID of the person who changed the status (0 = unknown)
-     */
     public function sendTicketStatusChanged(
         ActiveRow $ticket,
         ActiveRow $creator,
-        string    $oldStatus,
-        int       $changedBy = 0,
+        string $oldStatus,
+        int $changedBy = 0,
     ): void {
         $changedByName = $changedBy > 0
             ? $this->resolveUserName($changedBy)
             : 'System';
 
+        $ticketId     = RowType::int($ticket->id);
+        $ticketStatus = RowType::string($ticket->status);
+
         $this->doSend(
-            to:       (string) $creator->email,
-            subject:  "Ticket #{$ticket->id} status updated to "
-                          . $this->statusLabel((string) $ticket->status),
+            to:       RowType::string($creator->email),
+            subject:  "Ticket #{$ticketId} status updated to " . $this->statusLabel($ticketStatus),
             type:     'ticket_status_changed',
             template: 'ticketStatusChanged',
             params:   [
                 'ticket'        => $ticket,
                 'oldStatus'     => $this->statusLabel($oldStatus),
-                'newStatus'     => $this->statusLabel((string) $ticket->status),
+                'newStatus'     => $this->statusLabel($ticketStatus),
                 'changedByName' => $changedByName,
             ],
         );
     }
 
-    /**
-     * Notifies the assigned support user that a damage point was added to their ticket.
-     *
-     * @param ActiveRow $ticket      The ticket the point belongs to
-     * @param ActiveRow $assignee    The assigned support user to notify
-     * @param string    $description Description of the damage point
-     */
     public function sendDamagePointAdded(
         ActiveRow $ticket,
         ActiveRow $assignee,
-        string    $description,
+        string $description,
     ): void {
+        $ticketId = RowType::int($ticket->id);
+
         $this->doSend(
-            to:       (string) $assignee->email,
-            subject:  "New damage point added to ticket #{$ticket->id}",
+            to:       RowType::string($assignee->email),
+            subject:  "New damage point added to ticket #{$ticketId}",
             type:     'damage_point_added',
             template: 'damagePointAdded',
             params:   [
@@ -246,23 +193,17 @@ final class MailService
         );
     }
 
-    /**
-     * Notifies the ticket creator that a service record was added to the related item.
-     *
-     * @param ActiveRow $ticket             The ticket whose item received a service record
-     * @param ActiveRow $creator            The ticket's creator (recipient)
-     * @param string    $serviceDescription The service record description
-     * @param string    $addedByName        Full name of the person who added the record
-     */
     public function sendServiceHistoryAdded(
         ActiveRow $ticket,
         ActiveRow $creator,
-        string    $serviceDescription,
-        string    $addedByName,
+        string $serviceDescription,
+        string $addedByName,
     ): void {
+        $ticketId = RowType::int($ticket->id);
+
         $this->doSend(
-            to:       (string) $creator->email,
-            subject:  "Service record added to your ticket #{$ticket->id}",
+            to:       RowType::string($creator->email),
+            subject:  "Service record added to your ticket #{$ticketId}",
             type:     'service_history_added',
             template: 'serviceHistoryAdded',
             params:   [
@@ -273,23 +214,14 @@ final class MailService
         );
     }
 
-    // ==================================================================
-    //  Internal helpers
-    // ==================================================================
-
-    /**
-     * Renders a Latte template to HTML, builds a Message, and delivers it.
-     * Logs every attempt (success or failure) to email_log.
-     * Never throws — all exceptions are caught and swallowed.
-     */
+    /** @param array<string, mixed> $params */
     private function doSend(
         string $to,
         string $subject,
         string $type,
         string $template,
-        array  $params,
+        array $params,
     ): void {
-        // Inject common variables available in every template.
         $params['appName'] = self::APP_NAME;
         $params['appUrl']  = $this->appUrl;
 
@@ -314,39 +246,28 @@ final class MailService
         }
     }
 
-    /**
-     * Resolves an item's display name from its ID.
-     * Returns a fallback string on any error.
-     */
     private function resolveItemName(int $itemId): string
     {
         try {
             $item = $this->itemRepository->findById($itemId);
-            return $item ? (string) $item->name : "Item #{$itemId}";
+            return $item ? RowType::string($item->name) : "Item #{$itemId}";
         } catch (\Throwable) {
             return "Item #{$itemId}";
         }
     }
 
-    /**
-     * Resolves a user's full name from their ID.
-     * Returns a fallback string on any error.
-     */
     private function resolveUserName(int $userId): string
     {
         try {
             $user = $this->userRepository->findById($userId);
             return $user
-                ? trim($user->first_name . ' ' . $user->last_name)
+                ? trim(RowType::string($user->first_name) . ' ' . RowType::string($user->last_name))
                 : "User #{$userId}";
         } catch (\Throwable) {
             return "User #{$userId}";
         }
     }
 
-    /**
-     * Converts a DB status slug to a human-readable label.
-     */
     private function statusLabel(string $status): string
     {
         return match ($status) {

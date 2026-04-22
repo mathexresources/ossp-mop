@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Front\Presenters;
 
 use App\Core\SecuredPresenter;
+use App\Model\Database\RowType;
 use App\Model\Facade\DamagePointFacade;
 use App\Model\Facade\ItemFacade;
 use App\Model\Facade\TicketFacade;
@@ -15,21 +16,9 @@ use App\Model\Repository\TicketRepository;
 use App\Model\Repository\UserRepository;
 use Nette\Application\UI\Form;
 use Nette\Database\Table\ActiveRow;
+use Nette\Http\FileUpload;
 use Nette\Utils\Paginator;
 
-/**
- * Front-end ticket presenter.
- *
- * Access: all approved users (requiredRole = null).
- * Finer-grained guards are enforced per-action / per-form-handler.
- *
- * Actions:
- *   default       — paginated, filterable ticket list
- *   create        — new ticket with image upload (employee+)
- *   detail        — ticket detail with role-aware action panels
- *   edit          — edit title/description (owner if open, or admin)
- *   delete        — confirmation + soft-delete (admin only)
- */
 final class TicketPresenter extends SecuredPresenter
 {
     protected ?string $requiredRole = null;
@@ -38,14 +27,14 @@ final class TicketPresenter extends SecuredPresenter
 
     private ?ActiveRow $targetTicket = null;
 
-    private TicketFacade            $ticketFacade;
-    private ItemFacade              $itemFacade;
-    private DamagePointFacade       $damagePointFacade;
-    private TicketRepository        $ticketRepository;
-    private TicketImageRepository   $ticketImageRepository;
-    private ItemRepository          $itemRepository;
-    private ItemTypeRepository      $itemTypeRepository;
-    private UserRepository          $userRepository;
+    private TicketFacade          $ticketFacade;
+    private ItemFacade            $itemFacade;
+    private DamagePointFacade     $damagePointFacade;
+    private TicketRepository      $ticketRepository;
+    private TicketImageRepository $ticketImageRepository;
+    private ItemRepository        $itemRepository;
+    private ItemTypeRepository    $itemTypeRepository;
+    private UserRepository        $userRepository;
 
     public function injectTicketFacade(TicketFacade $ticketFacade): void
     {
@@ -93,9 +82,14 @@ final class TicketPresenter extends SecuredPresenter
 
     public function renderDefault(int $page = 1): void
     {
-        $status = trim((string) ($this->getParameter('status') ?? ''));
-        $itemId = (int) ($this->getParameter('itemId') ?? 0);
-        $search = trim((string) ($this->getParameter('search') ?? ''));
+        $statusRaw = $this->getParameter('status');
+        $status = is_string($statusRaw) ? trim($statusRaw) : '';
+
+        $itemIdRaw = $this->getParameter('itemId');
+        $itemId = is_int($itemIdRaw) ? $itemIdRaw : (is_string($itemIdRaw) && is_numeric($itemIdRaw) ? (int) $itemIdRaw : 0);
+
+        $searchRaw = $this->getParameter('search');
+        $search = is_string($searchRaw) ? trim($searchRaw) : '';
 
         $total = $this->ticketRepository->findAllFiltered($status, $itemId, $search)->count('*');
 
@@ -168,7 +162,7 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function createFormSucceeded(Form $form, \stdClass $values): void
+    public function createFormSucceeded(Form $form, mixed $values): void
     {
         if (!$this->getUser()->isAllowed('ticket', 'create')) {
             $this->flashMessage('Permission denied.', 'danger');
@@ -176,25 +170,28 @@ final class TicketPresenter extends SecuredPresenter
         }
 
         try {
+            $data = $form->getValues(true);
             $ticket = $this->ticketFacade->create(
                 [
-                    'title'       => $values->title,
-                    'description' => $values->description,
-                    'item_id'     => $values->item_id,
+                    'title'       => RowType::string($data['title']),
+                    'description' => RowType::string($data['description']),
+                    'item_id'     => RowType::intValue($data['item_id']),
                 ],
                 (int) $this->getUser()->getId(),
             );
 
-            // Handle optional image uploads.
             $uploadErrors = [];
-            foreach ($values->images as $file) {
-                if (!$file->isOk() || $file->getSize() === 0) {
-                    continue;
-                }
-                try {
-                    $this->ticketFacade->addImage((int) $ticket->id, $file);
-                } catch (\RuntimeException $e) {
-                    $uploadErrors[] = $e->getMessage();
+            $imagesRaw = $data['images'] ?? null;
+            if (is_iterable($imagesRaw)) {
+                foreach ($imagesRaw as $file) {
+                    if (!$file instanceof FileUpload || !$file->isOk() || $file->getSize() === 0) {
+                        continue;
+                    }
+                    try {
+                        $this->ticketFacade->addImage(RowType::int($ticket->id), $file);
+                    } catch (\RuntimeException $e) {
+                        $uploadErrors[] = $e->getMessage();
+                    }
                 }
             }
 
@@ -202,8 +199,9 @@ final class TicketPresenter extends SecuredPresenter
                 $this->flashMessage($err, 'warning');
             }
 
-            $this->flashMessage("Ticket #{$ticket->id} created successfully.", 'success');
-            $this->redirect('detail', $ticket->id);
+            $ticketId = RowType::int($ticket->id);
+            $this->flashMessage("Ticket #{$ticketId} created successfully.", 'success');
+            $this->redirect('detail', $ticketId);
         } catch (\Throwable $e) {
             $this->flashMessage('Failed to create ticket: ' . $e->getMessage(), 'danger');
         }
@@ -220,35 +218,34 @@ final class TicketPresenter extends SecuredPresenter
 
     public function renderDetail(int $id): void
     {
-        $ticket  = $this->targetTicket;
+        $ticket  = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
         $userId  = (int) $this->getUser()->getId();
-        $isOwner = (int) $ticket->created_by === $userId;
+        $isOwner = RowType::int($ticket->created_by) === $userId;
 
-        $item     = $this->itemRepository->findById((int) $ticket->item_id);
-        $creator  = $this->userRepository->findById((int) $ticket->created_by);
-        $assignee = $ticket->assigned_to
-            ? $this->userRepository->findById((int) $ticket->assigned_to)
-            : null;
-        $images   = $this->ticketImageRepository->findByTicket((int) $ticket->id)->fetchAll();
+        $item     = $this->itemRepository->findById(RowType::int($ticket->item_id));
+        $creator  = $this->userRepository->findById(RowType::int($ticket->created_by));
+        $assignedId = RowType::nullableInt($ticket->assigned_to);
+        $assignee = $assignedId !== null ? $this->userRepository->findById($assignedId) : null;
+        $ticketId = RowType::int($ticket->id);
+        $images   = $this->ticketImageRepository->findByTicket($ticketId)->fetchAll();
 
-        // Resolve blueprint from the item's type (shared across all items of the same type).
         $blueprintPath = null;
         if ($item !== null) {
-            $itemType = $this->itemTypeRepository->findById((int) $item->item_type_id);
-            if ($itemType !== null && $itemType->blueprint_path) {
-                $blueprintPath = $itemType->blueprint_path;
+            $itemType = $this->itemTypeRepository->findById(RowType::int($item->item_type_id));
+            if ($itemType !== null) {
+                $blueprintPath = RowType::nullableString($itemType->blueprint_path);
             }
         }
 
-        $damagePoints = $this->damagePointFacade->getForTicket((int) $ticket->id);
+        $damagePoints = $this->damagePointFacade->getForTicket($ticketId);
 
-        // Damage points are editable when:
-        //   - Ticket is NOT closed
-        //   - AND (support/admin, OR owner when ticket is open)
-        $canManageDamagePoints = $ticket->status !== 'closed'
-            && ($this->roleHelper->isSupport() || ($isOwner && $ticket->status === 'open'));
+        $ticketStatus = RowType::string($ticket->status);
+        $ticketTitle  = RowType::string($ticket->title);
 
-        $this->template->title                  = "Ticket #{$ticket->id} — {$ticket->title}";
+        $canManageDamagePoints = $ticketStatus !== 'closed'
+            && ($this->roleHelper->isSupport() || ($isOwner && $ticketStatus === 'open'));
+
+        $this->template->title                  = "Ticket #{$ticketId} — {$ticketTitle}";
         $this->template->ticket                 = $ticket;
         $this->template->item                   = $item;
         $this->template->creator                = $creator;
@@ -258,12 +255,12 @@ final class TicketPresenter extends SecuredPresenter
         $this->template->damagePoints           = $damagePoints;
         $this->template->damagePointsJson       = json_encode($damagePoints);
         $this->template->canManageDamagePoints  = $canManageDamagePoints;
-        $this->template->canEdit                = ($isOwner && $ticket->status === 'open') || $this->roleHelper->isAdmin();
+        $this->template->canEdit                = ($isOwner && $ticketStatus === 'open') || $this->roleHelper->isAdmin();
         $this->template->canDeleteTicket        = $this->roleHelper->isAdmin();
         $this->template->canAssign              = $this->roleHelper->isAdmin();
         $this->template->canChangeStatus        = $this->roleHelper->isSupport();
         $this->template->canAddServiceRecord    = $this->roleHelper->isSupport();
-        $this->template->canAddImage            = $this->roleHelper->isSupport() || ($isOwner && $ticket->status === 'open');
+        $this->template->canAddImage            = $this->roleHelper->isSupport() || ($isOwner && $ticketStatus === 'open');
         $this->template->canDeleteImage         = $this->roleHelper->isSupport();
     }
 
@@ -280,13 +277,17 @@ final class TicketPresenter extends SecuredPresenter
 
         $pairs = [];
         foreach ($supportRows as $u) {
-            $pairs[(int) $u->id] = $u->first_name . ' ' . $u->last_name;
+            $pairs[RowType::int($u->id)] = RowType::string($u->first_name) . ' ' . RowType::string($u->last_name);
         }
+
+        $defaultAssigned = $this->targetTicket !== null
+            ? RowType::nullableInt($this->targetTicket->assigned_to)
+            : null;
 
         $form->addSelect('assigned_to', 'Assign to', $pairs)
             ->setPrompt('— select support agent —')
             ->setRequired('Please select a support agent.')
-            ->setDefaultValue($this->targetTicket?->assigned_to);
+            ->setDefaultValue($defaultAssigned);
 
         $form->addSubmit('submit', 'Assign')
             ->setHtmlAttribute('class', 'btn btn-primary btn-sm');
@@ -296,21 +297,24 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function assignFormSucceeded(Form $form, \stdClass $values): void
+    public function assignFormSucceeded(Form $form, mixed $values): void
     {
+        $ticket = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
+
         if (!$this->roleHelper->isAdmin()) {
             $this->flashMessage('Permission denied.', 'danger');
-            $this->redirect('detail', $this->targetTicket->id);
+            $this->redirect('detail', RowType::int($ticket->id));
         }
 
         try {
-            $this->ticketFacade->assign((int) $this->targetTicket->id, (int) $values->assigned_to);
+            $data = $form->getValues(true);
+            $this->ticketFacade->assign(RowType::int($ticket->id), RowType::intValue($data['assigned_to']));
             $this->flashMessage('Ticket assigned successfully.', 'success');
         } catch (\Throwable $e) {
             $this->flashMessage('Failed to assign ticket: ' . $e->getMessage(), 'danger');
         }
 
-        $this->redirect('detail', $this->targetTicket->id);
+        $this->redirect('detail', RowType::int($ticket->id));
     }
 
     // -- Change-status form (support + admin) ------------------------
@@ -320,13 +324,17 @@ final class TicketPresenter extends SecuredPresenter
         $form = new Form();
         $form->addProtection();
 
+        $defaultStatus = $this->targetTicket !== null
+            ? RowType::string($this->targetTicket->status)
+            : 'open';
+
         $form->addSelect('status', 'New Status', [
             'open'        => 'Open',
             'in_progress' => 'In Progress',
             'closed'      => 'Closed',
         ])
             ->setRequired('Status is required.')
-            ->setDefaultValue($this->targetTicket?->status ?? 'open');
+            ->setDefaultValue($defaultStatus);
 
         $form->addSubmit('submit', 'Update Status')
             ->setHtmlAttribute('class', 'btn btn-primary btn-sm');
@@ -336,17 +344,20 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function changeStatusFormSucceeded(Form $form, \stdClass $values): void
+    public function changeStatusFormSucceeded(Form $form, mixed $values): void
     {
+        $ticket = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
+
         if (!$this->roleHelper->isSupport()) {
             $this->flashMessage('Permission denied.', 'danger');
-            $this->redirect('detail', $this->targetTicket->id);
+            $this->redirect('detail', RowType::int($ticket->id));
         }
 
         try {
+            $data = $form->getValues(true);
             $this->ticketFacade->changeStatus(
-                (int) $this->targetTicket->id,
-                $values->status,
+                RowType::int($ticket->id),
+                RowType::string($data['status']),
                 $this->roleHelper->isAdmin(),
                 (int) $this->getUser()->getId(),
             );
@@ -355,7 +366,7 @@ final class TicketPresenter extends SecuredPresenter
             $this->flashMessage($e->getMessage(), 'danger');
         }
 
-        $this->redirect('detail', $this->targetTicket->id);
+        $this->redirect('detail', RowType::int($ticket->id));
     }
 
     // -- Add service-record form (support + admin) -------------------
@@ -379,17 +390,20 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function addServiceRecordFormSucceeded(Form $form, \stdClass $values): void
+    public function addServiceRecordFormSucceeded(Form $form, mixed $values): void
     {
+        $ticket = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
+
         if (!$this->roleHelper->isSupport()) {
             $this->flashMessage('Permission denied.', 'danger');
-            $this->redirect('detail', $this->targetTicket->id);
+            $this->redirect('detail', RowType::int($ticket->id));
         }
 
         try {
+            $data = $form->getValues(true);
             $this->itemFacade->addServiceRecord(
-                (int) $this->targetTicket->item_id,
-                $values->description,
+                RowType::int($ticket->item_id),
+                RowType::string($data['description']),
                 (int) $this->getUser()->getId(),
             );
             $this->flashMessage('Service record added to item.', 'success');
@@ -397,7 +411,7 @@ final class TicketPresenter extends SecuredPresenter
             $this->flashMessage('Failed to add service record: ' . $e->getMessage(), 'danger');
         }
 
-        $this->redirect('detail', $this->targetTicket->id);
+        $this->redirect('detail', RowType::int($ticket->id));
     }
 
     // -- Add image form (owner if open, or support+) -----------------
@@ -418,30 +432,36 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function addImageFormSucceeded(Form $form, \stdClass $values): void
+    public function addImageFormSucceeded(Form $form, mixed $values): void
     {
-        $ticket = $this->targetTicket;
-        $userId = (int) $this->getUser()->getId();
-        $isOwner = (int) $ticket->created_by === $userId;
-        $canAdd  = $this->roleHelper->isSupport() || ($isOwner && $ticket->status === 'open');
+        $ticket  = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
+        $userId  = (int) $this->getUser()->getId();
+        $isOwner = RowType::int($ticket->created_by) === $userId;
+        $ticketStatus = RowType::string($ticket->status);
+        $canAdd  = $this->roleHelper->isSupport() || ($isOwner && $ticketStatus === 'open');
+        $ticketId = RowType::int($ticket->id);
 
         if (!$canAdd) {
             $this->flashMessage('Permission denied.', 'danger');
-            $this->redirect('detail', $ticket->id);
+            $this->redirect('detail', $ticketId);
         }
 
         $uploaded = 0;
         $errors   = [];
 
-        foreach ($values->images as $file) {
-            if (!$file->isOk() || $file->getSize() === 0) {
-                continue;
-            }
-            try {
-                $this->ticketFacade->addImage((int) $ticket->id, $file);
-                $uploaded++;
-            } catch (\RuntimeException $e) {
-                $errors[] = $e->getMessage();
+        $data = $form->getValues(true);
+        $imagesRaw = $data['images'] ?? null;
+        if (is_iterable($imagesRaw)) {
+            foreach ($imagesRaw as $file) {
+                if (!$file instanceof FileUpload || !$file->isOk() || $file->getSize() === 0) {
+                    continue;
+                }
+                try {
+                    $this->ticketFacade->addImage($ticketId, $file);
+                    $uploaded++;
+                } catch (\RuntimeException $e) {
+                    $errors[] = $e->getMessage();
+                }
             }
         }
 
@@ -452,44 +472,39 @@ final class TicketPresenter extends SecuredPresenter
             $this->flashMessage($err, 'danger');
         }
 
-        $this->redirect('detail', $ticket->id);
+        $this->redirect('detail', $ticketId);
     }
 
     // -- Delete image signal -----------------------------------------
 
-    /**
-     * Signal handler for inline image deletion.
-     * Triggered via a small POST form in the detail template.
-     */
     public function handleDeleteImage(int $imageId): void
     {
         if (!$this->getHttpRequest()->isMethod('POST')) {
             $this->error('Method not allowed.', 405);
         }
 
+        $ticket  = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
+        $ticketId = RowType::int($ticket->id);
+
         $image = $this->ticketImageRepository->findById($imageId);
         if ($image === null) {
             $this->flashMessage('Image not found.', 'danger');
-            $this->redirect('detail', $this->targetTicket->id);
-            return;
+            $this->redirect('detail', $ticketId);
         }
 
-        // Verify the image belongs to the current ticket.
-        if ((int) $image->ticket_id !== (int) $this->targetTicket->id) {
+        if (RowType::int($image->ticket_id) !== $ticketId) {
             $this->flashMessage('Image does not belong to this ticket.', 'danger');
-            $this->redirect('detail', $this->targetTicket->id);
-            return;
+            $this->redirect('detail', $ticketId);
         }
 
-        $userId  = (int) $this->getUser()->getId();
-        $isOwner = (int) $this->targetTicket->created_by === $userId;
-        $canDelete = $this->roleHelper->isSupport()
-            || ($isOwner && $this->targetTicket->status === 'open');
+        $userId    = (int) $this->getUser()->getId();
+        $isOwner   = RowType::int($ticket->created_by) === $userId;
+        $ticketStatus = RowType::string($ticket->status);
+        $canDelete = $this->roleHelper->isSupport() || ($isOwner && $ticketStatus === 'open');
 
         if (!$canDelete) {
             $this->flashMessage('You do not have permission to delete images.', 'danger');
-            $this->redirect('detail', $this->targetTicket->id);
-            return;
+            $this->redirect('detail', $ticketId);
         }
 
         try {
@@ -499,7 +514,7 @@ final class TicketPresenter extends SecuredPresenter
             $this->flashMessage('Failed to delete image: ' . $e->getMessage(), 'danger');
         }
 
-        $this->redirect('detail', $this->targetTicket->id);
+        $this->redirect('detail', $ticketId);
     }
 
     // ==================================================================
@@ -511,8 +526,8 @@ final class TicketPresenter extends SecuredPresenter
         $ticket = $this->requireTicket($id);
 
         $userId  = (int) $this->getUser()->getId();
-        $isOwner = (int) $ticket->created_by === $userId;
-        $canEdit = ($isOwner && $ticket->status === 'open') || $this->roleHelper->isAdmin();
+        $isOwner = RowType::int($ticket->created_by) === $userId;
+        $canEdit = ($isOwner && RowType::string($ticket->status) === 'open') || $this->roleHelper->isAdmin();
 
         if (!$canEdit) {
             $this->flashMessage('You cannot edit this ticket.', 'danger');
@@ -524,9 +539,9 @@ final class TicketPresenter extends SecuredPresenter
 
     public function renderEdit(int $id): void
     {
-        $ticket = $this->targetTicket;
+        $ticket = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
 
-        $this->template->title        = "Edit Ticket #{$ticket->id}";
+        $this->template->title        = "Edit Ticket #" . RowType::int($ticket->id);
         $this->template->targetTicket = $ticket;
 
         $this['editForm']->setDefaults([
@@ -557,25 +572,28 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function editFormSucceeded(Form $form, \stdClass $values): void
+    public function editFormSucceeded(Form $form, mixed $values): void
     {
-        $ticket  = $this->targetTicket;
+        $ticket  = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
         $userId  = (int) $this->getUser()->getId();
-        $isOwner = (int) $ticket->created_by === $userId;
-        $canEdit = ($isOwner && $ticket->status === 'open') || $this->roleHelper->isAdmin();
+        $isOwner = RowType::int($ticket->created_by) === $userId;
+        $ticketStatus = RowType::string($ticket->status);
+        $ticketId = RowType::int($ticket->id);
+        $canEdit = ($isOwner && $ticketStatus === 'open') || $this->roleHelper->isAdmin();
 
         if (!$canEdit) {
             $this->flashMessage('You cannot edit this ticket.', 'danger');
-            $this->redirect('detail', $ticket->id);
+            $this->redirect('detail', $ticketId);
         }
 
         try {
-            $this->ticketFacade->update((int) $ticket->id, [
-                'title'       => $values->title,
-                'description' => $values->description,
+            $data = $form->getValues(true);
+            $this->ticketFacade->update($ticketId, [
+                'title'       => RowType::string($data['title']),
+                'description' => RowType::string($data['description']),
             ]);
             $this->flashMessage('Ticket updated successfully.', 'success');
-            $this->redirect('detail', $ticket->id);
+            $this->redirect('detail', $ticketId);
         } catch (\Throwable $e) {
             $this->flashMessage('Failed to update ticket: ' . $e->getMessage(), 'danger');
         }
@@ -597,8 +615,9 @@ final class TicketPresenter extends SecuredPresenter
 
     public function renderDelete(int $id): void
     {
-        $this->template->title        = "Delete Ticket #{$this->targetTicket->id}";
-        $this->template->targetTicket = $this->targetTicket;
+        $ticket = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
+        $this->template->title        = "Delete Ticket #" . RowType::int($ticket->id);
+        $this->template->targetTicket = $ticket;
     }
 
     protected function createComponentDeleteForm(): Form
@@ -614,22 +633,24 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function deleteFormSucceeded(Form $form, \stdClass $values): void
+    public function deleteFormSucceeded(Form $form, mixed $values): void
     {
+        $ticket = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
+
         if (!$this->roleHelper->isAdmin()) {
             $this->flashMessage('Permission denied.', 'danger');
             $this->redirect('default');
         }
 
         try {
-            $ticketId = (int) $this->targetTicket->id;
-            $title    = $this->targetTicket->title;
+            $ticketId = RowType::int($ticket->id);
+            $title    = RowType::string($ticket->title);
             $this->ticketFacade->softDelete($ticketId);
             $this->flashMessage("Ticket #{$ticketId} \"{$title}\" has been deleted.", 'success');
             $this->redirect('default');
         } catch (\Throwable $e) {
             $this->flashMessage('Failed to delete ticket: ' . $e->getMessage(), 'danger');
-            $this->redirect('delete', $this->targetTicket->id);
+            $this->redirect('delete', RowType::int($ticket->id));
         }
     }
 

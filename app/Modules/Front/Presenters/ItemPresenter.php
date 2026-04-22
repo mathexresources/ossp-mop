@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Front\Presenters;
 
 use App\Core\SecuredPresenter;
+use App\Model\Database\RowType;
 use App\Model\Facade\ItemFacade;
 use App\Model\Repository\ItemRepository;
 use App\Model\Repository\ItemTypeRepository;
@@ -13,16 +14,6 @@ use App\Model\Repository\ServiceHistoryRepository;
 use Nette\Application\UI\Form;
 use Nette\Database\Table\ActiveRow;
 
-/**
- * Public item browser — read-only for employees, with service record
- * creation for support and admin.
- *
- * Minimum role: employee (all approved users can browse).
- *
- * Actions:
- *   default — filterable item list
- *   detail  — item info + service history (support/admin may add records)
- */
 final class ItemPresenter extends SecuredPresenter
 {
     protected ?string $requiredRole = 'employee';
@@ -66,9 +57,13 @@ final class ItemPresenter extends SecuredPresenter
 
     public function renderDefault(): void
     {
-        $typeId     = (int) ($this->getParameter('typeId')     ?? 0);
-        $locationId = (int) ($this->getParameter('locationId') ?? 0);
-        $search     = trim((string) ($this->getParameter('search') ?? ''));
+        $typeIdRaw     = $this->getParameter('typeId');
+        $locationIdRaw = $this->getParameter('locationId');
+        $searchRaw     = $this->getParameter('search');
+
+        $typeId     = is_numeric($typeIdRaw) ? (int) $typeIdRaw : 0;
+        $locationId = is_numeric($locationIdRaw) ? (int) $locationIdRaw : 0;
+        $search     = is_string($searchRaw) ? trim($searchRaw) : '';
 
         $this->template->title      = 'Browse Items';
         $this->template->items      = $this->itemRepository->findAllFiltered($typeId, $locationId, $search);
@@ -92,13 +87,18 @@ final class ItemPresenter extends SecuredPresenter
 
     public function renderDetail(int $id): void
     {
-        $item = $this->targetItem;
+        $item = $this->targetItem ?? throw new \LogicException('Target item not loaded.');
 
-        $this->template->title      = "Item — {$item->name}";
-        $this->template->targetItem = $item;
-        $this->template->itemType   = $this->itemTypeRepository->findById($item->item_type_id);
-        $this->template->location   = $this->locationRepository->findById($item->location_id);
-        $this->template->history    = $this->serviceHistoryRepository->findByItem($item->id)->fetchAll();
+        $itemName   = RowType::string($item->name);
+        $itemTypeId = RowType::int($item->item_type_id);
+        $locationId = RowType::int($item->location_id);
+        $itemId     = RowType::int($item->id);
+
+        $this->template->title        = "Item — {$itemName}";
+        $this->template->targetItem   = $item;
+        $this->template->itemType     = $this->itemTypeRepository->findById($itemTypeId);
+        $this->template->location     = $this->locationRepository->findById($locationId);
+        $this->template->history      = $this->serviceHistoryRepository->findByItem($itemId)->fetchAll();
         $this->template->canAddRecord = $this->roleHelper->isSupport();
     }
 
@@ -121,22 +121,22 @@ final class ItemPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function addServiceRecordFormSucceeded(Form $form, \stdClass $values): void
+    public function addServiceRecordFormSucceeded(Form $form, mixed $values): void
     {
-        // Gate: only support+ may add service records.
+        $item   = $this->targetItem ?? throw new \LogicException('Target item not loaded.');
+        $itemId = RowType::int($item->id);
+
         if (!$this->roleHelper->isSupport()) {
             $this->flashMessage('You do not have permission to add service records.', 'danger');
-            $this->redirect('detail', $this->targetItem->id);
+            $this->redirect('detail', $itemId);
         }
 
         try {
-            $this->itemFacade->addServiceRecord(
-                $this->targetItem->id,
-                $values->description,
-                (int) $this->getUser()->getId(),
-            );
+            $data        = $form->getValues(true);
+            $description = RowType::string($data['description']);
+            $this->itemFacade->addServiceRecord($itemId, $description, (int) $this->getUser()->getId());
             $this->flashMessage('Service record added.', 'success');
-            $this->redirect('detail', $this->targetItem->id);
+            $this->redirect('detail', $itemId);
         } catch (\Throwable $e) {
             $this->flashMessage('Failed to add service record: ' . $e->getMessage(), 'danger');
         }

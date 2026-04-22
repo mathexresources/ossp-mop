@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Model\Repository;
 
 use App\Model\Database\Repository;
+use Nette\Database\Table\ActiveRow;
 use Nette\Database\Table\Selection;
 
 final class ItemRepository extends Repository
@@ -14,14 +15,7 @@ final class ItemRepository extends Repository
         return 'items';
     }
 
-    /**
-     * Returns items with optional filters and search.
-     * Ordered by name ascending.
-     *
-     * @param int    $typeId     Filter by item_type_id (0 = no filter)
-     * @param int    $locationId Filter by location_id (0 = no filter)
-     * @param string $search     Partial match on name
-     */
+    /** @return Selection<ActiveRow> */
     public function findAllFiltered(int $typeId = 0, int $locationId = 0, string $search = ''): Selection
     {
         $q = $this->selection()->order('name ASC');
@@ -41,10 +35,6 @@ final class ItemRepository extends Repository
         return $q;
     }
 
-    /**
-     * Returns true when at least one ticket references this item.
-     * Used to guard hard-deletes.
-     */
     public function hasTickets(int $id): bool
     {
         return $this->db->table('tickets')->where('item_id', $id)->count('*') > 0;

@@ -90,8 +90,9 @@ final class RoleHelper
         }
 
         $roles = $this->user->getRoles();
+        $role = $roles[0] ?? null;
 
-        return $roles[0] ?? 'guest';
+        return is_string($role) ? $role : 'guest';
     }
 
     // ------------------------------------------------------------------

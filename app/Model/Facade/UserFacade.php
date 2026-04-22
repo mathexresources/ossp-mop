@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Model\Facade;
 
+use App\Model\Database\RowType;
 use App\Model\Mail\MailService;
 use App\Model\Repository\UserRepository;
 use Nette\Database\Table\ActiveRow;
@@ -67,11 +68,15 @@ final class UserFacade
 
         $this->mailService->sendAdminNewPending($row, $admins);
 
+        $rowFirstName = RowType::string($row->first_name);
+        $rowLastName = RowType::string($row->last_name);
+        $rowEmail = RowType::string($row->email);
+
         foreach ($admins as $admin) {
             $this->notificationFacade->notify(
-                (int) $admin->id,
+                RowType::int($admin->id),
                 NotificationFacade::TYPE_USER_PENDING,
-                "{$row->first_name} {$row->last_name} ({$row->email}) has registered and is awaiting approval.",
+                "{$rowFirstName} {$rowLastName} ({$rowEmail}) has registered and is awaiting approval.",
                 '/admin/user-approval',
             );
         }
@@ -208,7 +213,7 @@ final class UserFacade
     {
         $user = $this->requireUser($userId);
 
-        if (!password_verify($currentPassword, (string) $user->password_hash)) {
+        if (!password_verify($currentPassword, RowType::string($user->password_hash))) {
             throw new \RuntimeException('Current password is incorrect.');
         }
 
