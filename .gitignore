@@ -4,3 +4,4 @@
 !/temp/.gitkeep
 !/log/.gitkeep
 composer.lock
+.env

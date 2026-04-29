@@ -3,7 +3,7 @@ includes:
     - security.neon
 
 parameters:
-    appName: OSSP MOP
+    appName: SnapFix
 
 application:
     errorPresenter: Front:Error
@@ -13,10 +13,3 @@ application:
 services:
     router: App\Core\RouterFactory::createRouter
     - App\Model\Database\DatabaseService
-
-database:
-    dsn: 'mysql:host=database;dbname=app;charset=utf8mb4'
-    user: app
-    password: app
-    options:
-        lazy: true

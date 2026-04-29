@@ -2,3 +2,6 @@ security: []
 
 session:
     autoStart: true
+    cookieSamesite: Lax
+    cookieHttponly: true
+    cookieSecure: auto
