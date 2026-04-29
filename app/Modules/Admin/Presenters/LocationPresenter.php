@@ -64,9 +64,9 @@ final class LocationPresenter extends BasePresenter
         return $form;
     }
 
-    public function createFormSucceeded(Form $form, mixed $values): void
+    public function createFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
-        $data = $form->getValues(true);
+        $data = $form->getValues('array');
         $name = RowType::string($data['name']);
 
         try {
@@ -115,11 +115,11 @@ final class LocationPresenter extends BasePresenter
         return $form;
     }
 
-    public function editFormSucceeded(Form $form, mixed $values): void
+    public function editFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $location   = $this->targetLocation ?? throw new \LogicException('Target location not loaded.');
         $locationId = RowType::int($location->id);
-        $data       = $form->getValues(true);
+        $data       = $form->getValues('array');
         $name       = RowType::string($data['name']);
 
         try {
@@ -160,7 +160,7 @@ final class LocationPresenter extends BasePresenter
         return $form;
     }
 
-    public function deleteFormSucceeded(Form $form, mixed $values): void
+    public function deleteFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $location   = $this->targetLocation ?? throw new \LogicException('Target location not loaded.');
         $locationId = RowType::int($location->id);

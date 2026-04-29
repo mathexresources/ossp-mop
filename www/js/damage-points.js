@@ -41,9 +41,22 @@
 
     renderAll();
 
+    /* ── Bootstrap modal — single shared instance ────────────────────── */
+
+    const modalEl = document.getElementById('dpModal');
+    const bsModal = modalEl ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
+
+    /* Reset button state only after the modal is fully hidden, so the
+       fade-out animation cannot be bypassed by clicking confirm again. */
+    if (modalEl) {
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            setConfirmLoading(false);
+        });
+    }
+
     /* ── Click-to-add ────────────────────────────────────────────────── */
 
-    if (canManage) {
+    if (canManage && bsModal) {
         blueprint.style.cursor = 'crosshair';
 
         wrapper.addEventListener('click', function (e) {
@@ -59,8 +72,7 @@
             clearModalError();
             document.getElementById('dp-modal-desc').value = '';
 
-            const modal = new bootstrap.Modal(document.getElementById('dpModal'));
-            modal.show();
+            bsModal.show();
             setTimeout(function () {
                 document.getElementById('dp-modal-desc').focus();
             }, 300);
@@ -97,19 +109,19 @@
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('dpModal')).hide();
                     points.push(data.point);
                     addMarkerElement(data.point, points.length);
                     addListItem(data.point, points.length);
                     updateBadge();
+                    bsModal.hide();
+                    // setConfirmLoading(false) is called in hidden.bs.modal
                 } else {
                     setModalError(data.error || 'Failed to add damage point.');
+                    setConfirmLoading(false);
                 }
             })
             .catch(function () {
                 setModalError('Network error. Please try again.');
-            })
-            .finally(function () {
                 setConfirmLoading(false);
             });
         });

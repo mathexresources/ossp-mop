@@ -56,9 +56,9 @@ final class UserApprovalPresenter extends BasePresenter
         return $form;
     }
 
-    public function approveFormSucceeded(Form $form, mixed $values): void
+    public function approveFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
-        $data      = $form->getValues(true);
+        $data      = $form->getValues('array');
         $userIdRaw = $data['userId'] ?? null;
         $userId    = is_numeric($userIdRaw) ? (int) $userIdRaw : 0;
         $this->userFacade->approve($userId);
@@ -102,9 +102,9 @@ final class UserApprovalPresenter extends BasePresenter
         return $form;
     }
 
-    public function rejectFormSucceeded(Form $form, mixed $values): void
+    public function rejectFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
-        $data      = $form->getValues(true);
+        $data      = $form->getValues('array');
         $userIdRaw = $data['userId'] ?? null;
         $userId    = is_numeric($userIdRaw) ? (int) $userIdRaw : 0;
         $reason = trim(is_string($data['reason'] ?? null) ? $data['reason'] : '');

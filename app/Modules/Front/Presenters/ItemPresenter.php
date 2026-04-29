@@ -121,7 +121,7 @@ final class ItemPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function addServiceRecordFormSucceeded(Form $form, mixed $values): void
+    public function addServiceRecordFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $item   = $this->targetItem ?? throw new \LogicException('Target item not loaded.');
         $itemId = RowType::int($item->id);
@@ -132,12 +132,12 @@ final class ItemPresenter extends SecuredPresenter
         }
 
         try {
-            $data        = $form->getValues(true);
+            $data        = $form->getValues('array');
             $description = RowType::string($data['description']);
             $this->itemFacade->addServiceRecord($itemId, $description, (int) $this->getUser()->getId());
             $this->flashMessage('Service record added.', 'success');
             $this->redirect('detail', $itemId);
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to add service record: ' . $e->getMessage(), 'danger');
         }
     }

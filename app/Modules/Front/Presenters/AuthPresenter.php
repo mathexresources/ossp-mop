@@ -53,9 +53,9 @@ final class AuthPresenter extends BasePresenter
         return $form;
     }
 
-    public function loginFormSucceeded(Form $form, mixed $values): void
+    public function loginFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
-        $data     = $form->getValues(true);
+        $data     = $form->getValues('array');
         $email    = RowType::string($data['email']);
         $password = RowType::string($data['password']);
 
@@ -136,9 +136,9 @@ final class AuthPresenter extends BasePresenter
         return $form;
     }
 
-    public function registerFormSucceeded(Form $form, mixed $values): void
+    public function registerFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
-        $data  = $form->getValues(true);
+        $data  = $form->getValues('array');
         $email = RowType::string($data['email']);
 
         if ($this->userRepository->emailExists($email)) {

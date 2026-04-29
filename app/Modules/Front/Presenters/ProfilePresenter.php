@@ -91,10 +91,10 @@ final class ProfilePresenter extends SecuredPresenter
         return $form;
     }
 
-    public function profileFormSucceeded(Form $form, mixed $values): void
+    public function profileFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $userId = (int) $this->getUser()->getId();
-        $data   = $form->getValues(true);
+        $data   = $form->getValues('array');
 
         try {
             $this->userFacade->updateProfile($userId, [
@@ -106,7 +106,7 @@ final class ProfilePresenter extends SecuredPresenter
                 'city'       => is_string($data['city'] ?? null) ? $data['city'] : '',
             ]);
             $this->flashMessage('Profile updated successfully.', 'success');
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to update profile: ' . $e->getMessage(), 'danger');
         }
 
@@ -145,10 +145,10 @@ final class ProfilePresenter extends SecuredPresenter
         return $form;
     }
 
-    public function changePasswordFormSucceeded(Form $form, mixed $values): void
+    public function changePasswordFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $userId  = (int) $this->getUser()->getId();
-        $data    = $form->getValues(true);
+        $data    = $form->getValues('array');
         $current = RowType::string($data['current_password']);
         $new     = RowType::string($data['new_password']);
 
@@ -163,7 +163,7 @@ final class ProfilePresenter extends SecuredPresenter
                 $form->addError($e->getMessage());
             }
             return;
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to change password: ' . $e->getMessage(), 'danger');
         }
 

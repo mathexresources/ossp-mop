@@ -127,10 +127,10 @@ final class ItemPresenter extends BasePresenter
         return $form;
     }
 
-    public function createFormSucceeded(Form $form, mixed $values): void
+    public function createFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         try {
-            $data          = $form->getValues(true);
+            $data          = $form->getValues('array');
             $itemTypeIdRaw = $data['item_type_id'] ?? null;
             $locationIdRaw = $data['location_id'] ?? null;
             $item = $this->itemFacade->createItem([
@@ -143,7 +143,7 @@ final class ItemPresenter extends BasePresenter
             $itemId   = RowType::int($item->id);
             $this->flashMessage("Item \"{$itemName}\" created successfully.", 'success');
             $this->redirect('detail', $itemId);
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to create item: ' . $e->getMessage(), 'danger');
         }
     }
@@ -205,13 +205,13 @@ final class ItemPresenter extends BasePresenter
         return $form;
     }
 
-    public function editFormSucceeded(Form $form, mixed $values): void
+    public function editFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $item   = $this->targetItem ?? throw new \LogicException('Target item not loaded.');
         $itemId = RowType::int($item->id);
 
         try {
-            $data          = $form->getValues(true);
+            $data          = $form->getValues('array');
             $itemTypeIdRaw = $data['item_type_id'] ?? null;
             $locationIdRaw = $data['location_id'] ?? null;
             $this->itemFacade->updateItem($itemId, [
@@ -222,7 +222,7 @@ final class ItemPresenter extends BasePresenter
             ]);
             $this->flashMessage('Item updated successfully.', 'success');
             $this->redirect('detail', $itemId);
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to update item: ' . $e->getMessage(), 'danger');
         }
     }
@@ -271,20 +271,20 @@ final class ItemPresenter extends BasePresenter
         return $form;
     }
 
-    public function addServiceRecordFormSucceeded(Form $form, mixed $values): void
+    public function addServiceRecordFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $item   = $this->targetItem ?? throw new \LogicException('Target item not loaded.');
         $itemId = RowType::int($item->id);
 
         try {
-            $data        = $form->getValues(true);
+            $data        = $form->getValues('array');
             $description = RowType::string($data['description']);
             $userId      = (int) $this->getUser()->getId();
 
             $this->itemFacade->addServiceRecord($itemId, $description, $userId);
             $this->flashMessage('Service record added.', 'success');
             $this->redirect('detail', $itemId);
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to add service record: ' . $e->getMessage(), 'danger');
         }
     }
@@ -318,7 +318,7 @@ final class ItemPresenter extends BasePresenter
         return $form;
     }
 
-    public function deleteFormSucceeded(Form $form, mixed $values): void
+    public function deleteFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $item   = $this->targetItem ?? throw new \LogicException('Target item not loaded.');
         $itemId = RowType::int($item->id);

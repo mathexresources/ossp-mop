@@ -1,5 +1,5 @@
 /**
- * OSSP MOP — Notification polling & dropdown
+ * SnapFix — Notification polling & dropdown
  *
  * Polls the API every POLL_INTERVAL ms to update the bell badge count.
  * On dropdown open, fetches the 5 most recent unread notifications and

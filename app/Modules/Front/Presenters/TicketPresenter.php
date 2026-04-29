@@ -162,7 +162,7 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function createFormSucceeded(Form $form, mixed $values): void
+    public function createFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         if (!$this->getUser()->isAllowed('ticket', 'create')) {
             $this->flashMessage('Permission denied.', 'danger');
@@ -170,7 +170,7 @@ final class TicketPresenter extends SecuredPresenter
         }
 
         try {
-            $data = $form->getValues(true);
+            $data = $form->getValues('array');
             $ticket = $this->ticketFacade->create(
                 [
                     'title'       => RowType::string($data['title']),
@@ -202,7 +202,7 @@ final class TicketPresenter extends SecuredPresenter
             $ticketId = RowType::int($ticket->id);
             $this->flashMessage("Ticket #{$ticketId} created successfully.", 'success');
             $this->redirect('detail', $ticketId);
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to create ticket: ' . $e->getMessage(), 'danger');
         }
     }
@@ -297,7 +297,7 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function assignFormSucceeded(Form $form, mixed $values): void
+    public function assignFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $ticket = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
 
@@ -307,10 +307,10 @@ final class TicketPresenter extends SecuredPresenter
         }
 
         try {
-            $data = $form->getValues(true);
+            $data = $form->getValues('array');
             $this->ticketFacade->assign(RowType::int($ticket->id), RowType::intValue($data['assigned_to']));
             $this->flashMessage('Ticket assigned successfully.', 'success');
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to assign ticket: ' . $e->getMessage(), 'danger');
         }
 
@@ -344,7 +344,7 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function changeStatusFormSucceeded(Form $form, mixed $values): void
+    public function changeStatusFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $ticket = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
 
@@ -354,7 +354,7 @@ final class TicketPresenter extends SecuredPresenter
         }
 
         try {
-            $data = $form->getValues(true);
+            $data = $form->getValues('array');
             $this->ticketFacade->changeStatus(
                 RowType::int($ticket->id),
                 RowType::string($data['status']),
@@ -390,7 +390,7 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function addServiceRecordFormSucceeded(Form $form, mixed $values): void
+    public function addServiceRecordFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $ticket = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
 
@@ -400,14 +400,14 @@ final class TicketPresenter extends SecuredPresenter
         }
 
         try {
-            $data = $form->getValues(true);
+            $data = $form->getValues('array');
             $this->itemFacade->addServiceRecord(
                 RowType::int($ticket->item_id),
                 RowType::string($data['description']),
                 (int) $this->getUser()->getId(),
             );
             $this->flashMessage('Service record added to item.', 'success');
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to add service record: ' . $e->getMessage(), 'danger');
         }
 
@@ -432,7 +432,7 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function addImageFormSucceeded(Form $form, mixed $values): void
+    public function addImageFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $ticket  = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
         $userId  = (int) $this->getUser()->getId();
@@ -449,7 +449,7 @@ final class TicketPresenter extends SecuredPresenter
         $uploaded = 0;
         $errors   = [];
 
-        $data = $form->getValues(true);
+        $data = $form->getValues('array');
         $imagesRaw = $data['images'] ?? null;
         if (is_iterable($imagesRaw)) {
             foreach ($imagesRaw as $file) {
@@ -510,7 +510,7 @@ final class TicketPresenter extends SecuredPresenter
         try {
             $this->ticketFacade->deleteImage($imageId);
             $this->flashMessage('Image deleted.', 'success');
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to delete image: ' . $e->getMessage(), 'danger');
         }
 
@@ -572,7 +572,7 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function editFormSucceeded(Form $form, mixed $values): void
+    public function editFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $ticket  = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
         $userId  = (int) $this->getUser()->getId();
@@ -587,14 +587,14 @@ final class TicketPresenter extends SecuredPresenter
         }
 
         try {
-            $data = $form->getValues(true);
+            $data = $form->getValues('array');
             $this->ticketFacade->update($ticketId, [
                 'title'       => RowType::string($data['title']),
                 'description' => RowType::string($data['description']),
             ]);
             $this->flashMessage('Ticket updated successfully.', 'success');
             $this->redirect('detail', $ticketId);
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to update ticket: ' . $e->getMessage(), 'danger');
         }
     }
@@ -633,7 +633,7 @@ final class TicketPresenter extends SecuredPresenter
         return $form;
     }
 
-    public function deleteFormSucceeded(Form $form, mixed $values): void
+    public function deleteFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $ticket = $this->targetTicket ?? throw new \LogicException('Target ticket not loaded.');
 
@@ -648,7 +648,7 @@ final class TicketPresenter extends SecuredPresenter
             $this->ticketFacade->softDelete($ticketId);
             $this->flashMessage("Ticket #{$ticketId} \"{$title}\" has been deleted.", 'success');
             $this->redirect('default');
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to delete ticket: ' . $e->getMessage(), 'danger');
             $this->redirect('delete', RowType::int($ticket->id));
         }

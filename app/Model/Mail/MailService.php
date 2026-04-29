@@ -16,7 +16,7 @@ use Tracy\Debugger;
 
 final class MailService
 {
-    private const APP_NAME = 'OSSP MOP';
+    private const APP_NAME = 'SnapFix';
 
     private Engine $latte;
 

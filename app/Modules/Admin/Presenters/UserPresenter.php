@@ -118,10 +118,10 @@ final class UserPresenter extends BasePresenter
         return $form;
     }
 
-    public function createFormSucceeded(Form $form, mixed $values): void
+    public function createFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         try {
-            $data = $form->getValues(true);
+            $data = $form->getValues('array');
             $this->userFacade->createByAdmin([
                 'first_name' => RowType::string($data['first_name']),
                 'last_name'  => RowType::string($data['last_name']),
@@ -135,7 +135,7 @@ final class UserPresenter extends BasePresenter
             ]);
             $this->flashMessage('User created successfully.', 'success');
             $this->redirect('default');
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to create user: ' . $e->getMessage(), 'danger');
         }
     }
@@ -224,13 +224,13 @@ final class UserPresenter extends BasePresenter
         return $form;
     }
 
-    public function editFormSucceeded(Form $form, mixed $values): void
+    public function editFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $user   = $this->targetUser ?? throw new \LogicException('Target user not loaded.');
         $userId = RowType::int($user->id);
         $isSelf = ($userId === (int) $this->getUser()->getId());
 
-        $data = $form->getValues(true);
+        $data = $form->getValues('array');
         $roleValue   = RowType::string($data['role']);
         $statusValue = RowType::string($data['status']);
 
@@ -259,7 +259,7 @@ final class UserPresenter extends BasePresenter
             ]);
             $this->flashMessage('User updated successfully.', 'success');
             $this->redirect('default');
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to update user: ' . $e->getMessage(), 'danger');
         }
     }
@@ -306,17 +306,17 @@ final class UserPresenter extends BasePresenter
         return $form;
     }
 
-    public function passwordFormSucceeded(Form $form, mixed $values): void
+    public function passwordFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $user = $this->targetUser ?? throw new \LogicException('Target user not loaded.');
         $userId = RowType::int($user->id);
 
         try {
-            $data = $form->getValues(true);
+            $data = $form->getValues('array');
             $this->userFacade->resetPassword($userId, RowType::string($data['new_password']));
             $this->flashMessage('Password has been reset successfully.', 'success');
             $this->redirect('edit', $userId);
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to reset password: ' . $e->getMessage(), 'danger');
         }
     }
@@ -356,7 +356,7 @@ final class UserPresenter extends BasePresenter
         return $form;
     }
 
-    public function deleteFormSucceeded(Form $form, mixed $values): void
+    public function deleteFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $user = $this->targetUser ?? throw new \LogicException('Target user not loaded.');
         $userId = RowType::int($user->id);
@@ -371,7 +371,7 @@ final class UserPresenter extends BasePresenter
             $this->userFacade->softDelete($userId);
             $this->flashMessage("User \"{$name}\" has been deleted.", 'success');
             $this->redirect('default');
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException $e) {
             $this->flashMessage('Failed to delete user: ' . $e->getMessage(), 'danger');
         }
     }

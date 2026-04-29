@@ -65,9 +65,9 @@ final class ItemTypePresenter extends BasePresenter
         return $form;
     }
 
-    public function createFormSucceeded(Form $form, mixed $values): void
+    public function createFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
-        $data = $form->getValues(true);
+        $data = $form->getValues('array');
         $name = RowType::string($data['name']);
 
         try {
@@ -122,11 +122,11 @@ final class ItemTypePresenter extends BasePresenter
         return $form;
     }
 
-    public function editFormSucceeded(Form $form, mixed $values): void
+    public function editFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $type   = $this->targetType ?? throw new \LogicException('Target type not loaded.');
         $typeId = RowType::int($type->id);
-        $data   = $form->getValues(true);
+        $data   = $form->getValues('array');
         $name   = RowType::string($data['name']);
 
         try {
@@ -177,7 +177,7 @@ final class ItemTypePresenter extends BasePresenter
         return $form;
     }
 
-    public function deleteFormSucceeded(Form $form, mixed $values): void
+    public function deleteFormSucceeded(Form $form, \Nette\Utils\ArrayHash $values): void
     {
         $type   = $this->targetType ?? throw new \LogicException('Target type not loaded.');
         $typeId = RowType::int($type->id);

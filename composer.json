@@ -1,6 +1,6 @@
 {
-    "name": "ossp/mop",
-    "description": "OSSP MOP application",
+    "name": "snapfix/app",
+    "description": "SnapFix application",
     "type": "project",
     "require": {
         "php": ">=8.1",

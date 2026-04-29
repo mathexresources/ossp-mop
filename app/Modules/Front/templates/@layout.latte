@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{ifset title}{$title} — {/ifset}OSSP MOP</title>
+    <title>{ifset title}{$title} — {/ifset}SnapFix</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -14,13 +14,13 @@
 <body>
 
 {* ── Top navigation bar ─────────────────────────────────────────────── *}
-<nav class="navbar navbar-expand-lg navbar-mop fixed-top py-0" style="height:56px;">
+<nav class="navbar navbar-expand-lg navbar-sf fixed-top py-0" style="height:56px;">
     <div class="container">
 
         {* Brand *}
         <a class="navbar-brand d-flex align-items-center gap-2" href="{link :Front:Homepage:default}">
             <i class="bi bi-tools text-accent"></i>
-            OSSP MOP
+            SnapFix
         </a>
 
         {* Mobile toggle *}
@@ -31,7 +31,7 @@
         </button>
 
         <div class="collapse navbar-collapse" id="mainNav"
-             style="background:var(--mop-primary);">
+             style="background:var(--sf-primary);">
 
             {* ── Left: page links ─────────────────────────────────── *}
             {var $pName = $presenter->getName()}
@@ -193,7 +193,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="btn btn-sm ms-1 fw-semibold"
-                           style="background:var(--mop-accent);color:#fff;border-radius:.375rem;padding:.35rem .8rem;"
+                           style="background:var(--sf-accent);color:#fff;border-radius:.375rem;padding:.35rem .8rem;"
                            href="{link :Front:Auth:register}">Register</a>
                     </li>
                 {/if}
@@ -232,7 +232,7 @@
 
 <footer class="bg-white border-top py-3 mt-auto">
     <div class="container text-center text-muted small">
-        &copy; {date('Y')} OSSP MOP &mdash; Maintenance Operations Portal
+        &copy; {date('Y')} SnapFix &mdash; Smart Repair Ticketing
     </div>
 </footer>
 

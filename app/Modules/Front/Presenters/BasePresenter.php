@@ -29,6 +29,6 @@ abstract class BasePresenter extends Presenter
 
         $this->template->user       = $this->getUser();
         $this->template->roleHelper = $this->roleHelper;
-        $this->template->title      = 'OSSP MOP';
+        $this->template->title      = 'SnapFix';
     }
 }

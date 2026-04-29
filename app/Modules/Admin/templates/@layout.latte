@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{ifset title}{$title} — {/ifset}OSSP MOP Admin</title>
+    <title>{ifset title}{$title} — {/ifset}SnapFix Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -14,7 +14,7 @@
 <body class="bg-light">
 
 {* ── Fixed top navbar ────────────────────────────────────────────────── *}
-<nav class="navbar navbar-mop fixed-top py-0" style="height:56px;z-index:1030;">
+<nav class="navbar navbar-sf fixed-top py-0" style="height:56px;z-index:1030;">
     <div class="container-fluid px-3">
 
         {* Mobile: sidebar toggle *}
@@ -31,9 +31,9 @@
         <a class="navbar-brand d-flex align-items-center gap-2"
            href="{link :Admin:Dashboard:default}">
             <i class="bi bi-shield-check text-accent"></i>
-            OSSP MOP
+            SnapFix
             <span class="badge ms-1 fw-semibold"
-                  style="background:var(--mop-accent);font-size:.65rem;letter-spacing:.03em;">
+                  style="background:var(--sf-accent);font-size:.65rem;letter-spacing:.03em;">
                 ADMIN
             </span>
         </a>
